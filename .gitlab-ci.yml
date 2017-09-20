@@ -4,7 +4,7 @@ stages:
   - coverage
 
 "Live Tests":
-  stage: live
+  stage: test
   variables:
     LIVE: "true"  # Runs the online tests against AWS
   artifacts:
