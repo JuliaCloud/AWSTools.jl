@@ -27,6 +27,7 @@ stages:
     - $(/usr/local/bin/aws ecr get-login --region us-east-1)
     - docker rmi 292522074875.dkr.ecr.us-east-1.amazonaws.com/aws-cluster-managers-test:$CI_COMMIT_SHA
   tags:
+    - shell-ci
     - linux
     - docker
     - ecr
