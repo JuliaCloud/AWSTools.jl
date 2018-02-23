@@ -2,4 +2,4 @@ julia 0.6
 AWSSDK 0.2.0
 Nulls 0.0.6
 Mocking 0.3.3
-Memento 0.2.0
+Memento 0.5.0

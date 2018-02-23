@@ -10,7 +10,10 @@ using AWSSDK.Batch
 using AWSSDK.CloudWatchLogs
 using AWSSDK.S3
 
-import AWSSDK.Batch: describe_job_definitions, describe_jobs, register_job_definition, submit_job
+import AWSSDK.Batch:
+    describe_job_definitions, describe_jobs, register_job_definition,
+    deregister_job_definition, submit_job
+
 import AWSSDK.S3: get_object
 import AWSSDK.CloudWatchLogs: get_log_events
 
@@ -18,11 +21,17 @@ export
     BatchJob,
     BatchStatus,
     S3Results,
+    register,
+    deregister,
     submit,
     logs
 
 
-logger = get_logger(current_module())
+const logger = getlogger(current_module())
+# Register the module level logger at runtime so that folks can access the logger via `getlogger(MyModule)`
+# NOTE: If this line is not included then the precompiled `MyModule.logger` won't be registered at runtime.
+__init__() = Memento.register(logger)
+
 
 #####################
 #   BatchStatus
@@ -134,15 +143,15 @@ function BatchJob(; kwargs...)
         :vcpus => 1,
         :memory => 1024,
         :role => "",
-        :defintion => "",
+        :definition => "",
         :queue => "",
         :region => "",
         :output => null,
     )
 
-    function from_container(container::Dict)
+    function from_container(container::T) where T <: Associative
         return Dict(
-            :cmd => Cmd(container["command"]),
+            :cmd => Cmd(Array{String, 1}(container["command"])),
             :image => container["image"],
             :vcpus => container["vcpus"],
             :memory => container["memory"],
@@ -177,14 +186,18 @@ function BatchJob(; kwargs...)
         # Requires permissions to access to "batch:DescribeJobs"
         resp = @mock describe_jobs(Dict("jobs" => [job_id]))
 
-        details = first(resp["jobs"])
-        d = from_container(details["container"])
-        d[:id] = job_id
-        d[:name] = details["jobName"]
-        d[:definition] = details["jobDefinition"]
-        d[:queue] = job_queue
-        d[:region] = region
-        merge!(defaults, d)
+        if length(resp["jobs"]) > 0
+            details = first(resp["jobs"])
+            d = from_container(details["container"])
+            d[:id] = job_id
+            d[:name] = details["jobName"]
+            d[:definition] = details["jobDefinition"]
+            d[:queue] = job_queue
+            d[:region] = region
+            merge!(defaults, d)
+        else
+            warn(logger, "No jobs found with id: $job_id")
+        end
     end
 
     inputs = merge(defaults, inputs)
@@ -196,7 +209,7 @@ function BatchJob(; kwargs...)
         inputs[:vcpus],
         inputs[:memory],
         inputs[:role],
-        inputs[:defintion],
+        inputs[:definition],
         inputs[:queue],
         inputs[:region],
         inputs[:output],
@@ -220,7 +233,7 @@ function def_arn(job::BatchJob)
         elseif startswith(job.definition, "arn:")
             describe_job_definitions(Dict("jobDefinitions" => [job.definition]))
         else
-            describe_job_definitions(Dict("jobDefinitionName" => [job.definition]))
+            describe_job_definitions(Dict("jobDefinitionName" => job.definition))
         end
 
     isempty(resp["jobDefinitions"]) && return ""
@@ -234,9 +247,9 @@ function def_arn(job::BatchJob)
 
     if (
         latest["status"] == "ACTIVE" &&
-        latest["type"] != "container" &&
-        latest["containerProperties"]["image"] && job.image ||
-        latest["containerProperties"]["jobRoleArn"] && job.role
+        latest["type"] == "container" &&
+        latest["containerProperties"]["image"] == job.image &&
+        latest["containerProperties"]["jobRoleArn"] == job.role
     )
         return latest["jobDefinitionArn"]
     else
@@ -245,35 +258,59 @@ function def_arn(job::BatchJob)
 end
 
 """
+    register(job::BatchJob) -> String
+
+Registers a new job definition. If no job definition exists, a new job definition is created
+under the current job specifications, where the new job definition will be `job.name`.
+This function returns the new job definition.
+"""
+function register(job::BatchJob)
+    def_name = isempty(job.definition) ? job.name : job.definition
+    debug(logger, "Registering job definition $(def_name).")
+    input = [
+        "type" => "container",
+        "containerProperties" => [
+            "image" => job.image,
+            "vcpus" => job.vcpus,
+            "memory" => job.memory,
+            "command" => job.cmd.exec,
+            "jobRoleArn" => job.role,
+        ],
+        "jobDefinitionName" => def_name,
+    ]
+
+    resp = register_job_definition(input)
+    definition = resp["jobDefinitionArn"]
+    info(logger, "Registered job definition $definition.")
+    return definition
+end
+
+"""
+    deregister(job::BatchJob) -> Dict
+
+Deregisters an AWS Batch job definition. If the action is successful, this function will
+return the empty response dictionary.
+"""
+function deregister(job::BatchJob)
+    def_name = isempty(job.definition) ? job.name : job.definition
+    debug(logger, "Deregistering job definition $(def_name).")
+    resp = deregister_job_definition(Dict("jobDefinition" => def_name))
+    info(logger, "Deregistered job definition $def_name: $resp")
+    return resp
+end
+
+"""
     submit(job::BatchJob) -> Dict
 
 Handles submitting the batch job and registering a new job definition if necessary.
-If no valid job definition exists (see `AWSTools.def_arn`) then a new job definition will be created
-using the current job specifications, where the new job definition name will be `job.name`.
-Once the job has been submitted this function will return the response dictionary.
+If no valid job definition exists (see `AWSTools.def_arn`) then a new job definition will be
+created. Once the job has been submitted this function will return the response dictionary.
 """
 function submit(job::BatchJob)
     definition = def_arn(job)
 
     if isempty(definition)
-        def_name = isempty(job.definition) ? job.name : job.definition
-        debug(logger, "Registering job definition $(def_name).")
-        input = [
-            "type" => "container",
-            "containerProperties" => [
-                "image" => job.image,
-                "vcpus" => job.vcpus,
-                "memory" => job.memory,
-                "command" => job.cmd.exec,
-                "jobRoleArn" => job.role,
-            ],
-            "jobDefinitionName" => def_name,
-        ]
-
-        debug(logger, "Input: $input")
-        resp = register_job_definition(input)
-        definition = resp["jobDefinitionArn"]
-        info(logger, "Registered job definition $definition.")
+        definition = register(job)
     end
 
     job.definition = definition
@@ -307,8 +344,9 @@ describing the batch job.
 function describe(job::BatchJob)
     isempty(job.id) && throw(logger, ArgumentError("job.id is not set"))
     resp = describe_jobs(; jobs=[job.id])
+    isempty(resp["jobs"]) && error(logger, "Job $(job.name)::$(job.id) not found.")
     debug(logger, "Job $(job.name)::$(job.id): $resp")
-    return resp
+    return first(resp["jobs"])
 end
 
 """
@@ -338,12 +376,9 @@ function Base.wait(
 
     tic()
     while time < timeout
-        resp = describe(job)
-        isempty(resp["jobs"]) && error(logger, "Job $(job.name)::$(job.id) not found.")
+        j = describe(job)
 
         time += toq()
-
-        j = first(resp["jobs"])
         s = status(j["status"])
 
         if s != last_state
@@ -377,9 +412,9 @@ NOTES:
 - We do not support pagination, so this function is limited to 10,000 log messages by default.
 """
 function logs(job::BatchJob)
-    resp = describe(job)
+    j = describe(job)
 
-    stream = first(resp["jobs"])["container"]["logStreamName"]
+    stream = j["container"]["logStreamName"]
     info(logger, "Fetching log events from $stream")
 
     l = get_log_events(; logGroupName="/aws/batch/job", logStreamName=stream)
