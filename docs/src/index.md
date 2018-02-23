@@ -70,6 +70,8 @@ AWSTools.BatchJob
 AWSTools.BatchStatus
 AWSTools.S3Results
 AWSTools.describe
+AWSTools.register
+AWSTools.deregister
 AWSTools.submit
 Base.wait
 AWSTools.logs

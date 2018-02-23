@@ -95,6 +95,7 @@ include("mock.jl")
 
         submit(job)
         wait(job, [AWSTools.SUCCEEDED])
+        deregister(job)
         events = logs(job)
 
         @test length(events) == 1
