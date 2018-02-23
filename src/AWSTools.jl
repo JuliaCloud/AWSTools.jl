@@ -27,7 +27,11 @@ export
     logs
 
 
-logger = getlogger(current_module())
+const logger = getlogger(current_module())
+# Register the module level logger at runtime so that folks can access the logger via `getlogger(MyModule)`
+# NOTE: If this line is not included then the precompiled `MyModule.logger` won't be registered at runtime.
+__init__() = Memento.register(logger)
+
 
 #####################
 #   BatchStatus
@@ -151,7 +155,7 @@ function BatchJob(; kwargs...)
             :image => container["image"],
             :vcpus => container["vcpus"],
             :memory => container["memory"],
-            :role => get(container, "jobRoleArn", ""),
+            :role => container["jobRoleArn"],
         )
     end
 
@@ -191,6 +195,8 @@ function BatchJob(; kwargs...)
             d[:queue] = job_queue
             d[:region] = region
             merge!(defaults, d)
+        else
+            warn(logger, "No jobs found with id: $job_id")
         end
     end
 
