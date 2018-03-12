@@ -31,7 +31,7 @@ include("mock.jl")
             @test isempty(job.image)
             @test isempty(job.definition)
             @test isempty(job.role)
-            @test isnull(job.output)
+            @test job.output === nothing
         end
 
         @testset "From Job Definition" begin
@@ -42,7 +42,7 @@ include("mock.jl")
 
                 @test job.cmd == `sleep 60`
                 @test job.image == "busybox"
-                @test isnull(job.output)
+                @test job.output === nothing
             end
         end
 
@@ -58,7 +58,7 @@ include("mock.jl")
 
                     @test job.memory == 128
                     @test job.image == "busybox"
-                    @test isnull(job.output)
+                    @test job.output === nothing
                 end
             end
         end
@@ -74,7 +74,7 @@ include("mock.jl")
                     job = BatchJob(output=S3Results("AWSTools", "test"))
 
                     @test job.memory == 128
-                    @test !isnull(job.output)
+                    @test job.output !== nothing
                 end
             end
         end
