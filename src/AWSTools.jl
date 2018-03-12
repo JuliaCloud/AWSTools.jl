@@ -3,7 +3,6 @@ module AWSTools
 using Memento
 
 using Mocking
-using Nulls
 
 using AWSSDK
 using AWSSDK.Batch
@@ -16,6 +15,8 @@ import AWSSDK.Batch:
 
 import AWSSDK.S3: get_object
 import AWSSDK.CloudWatchLogs: get_log_events
+
+using Compat: Nothing
 
 export
     BatchJob,
@@ -105,7 +106,7 @@ Stores configuration information about a batch job in order to:
 - definition::String: job definition name or arn
 - queue::String: queue to insert the batch job into
 - region::String: AWS region to use
-- output::Union{AbstractResults, Null}: where job results should be stored
+- output::Union{AbstractResults, Nothing}: where job results should be stored
 """
 mutable struct BatchJob
     id::String
@@ -118,7 +119,7 @@ mutable struct BatchJob
     definition::String
     queue::String
     region::String
-    output::Union{AbstractResults, Null}
+    output::Union{AbstractResults, Nothing}
 end
 
 """
@@ -146,7 +147,7 @@ function BatchJob(; kwargs...)
         :definition => "",
         :queue => "",
         :region => "",
-        :output => null,
+        :output => nothing,
     )
 
     function from_container(container::T) where T <: Associative
