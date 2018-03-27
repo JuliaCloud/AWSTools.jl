@@ -5,7 +5,7 @@ using AWSTools
 using Base.Test
 
 import AWSTools.Docker
-import AWSTools.CloudFormation: stack_outputs
+import AWSTools.CloudFormation: stack_description
 import AWSTools.ECR: get_login
 import AWSTools.S3: S3Results
 
@@ -17,19 +17,33 @@ include("mock.jl")
             patch = @patch describe_stacks(args...) = DESCRIBE_STACKS_RESP
 
             apply(patch; debug=true) do
-                resp = stack_outputs("stackname")
+                resp = stack_description("stackname")
 
-                @test "ManagerJobQueue" in keys(resp)
-                @test "WorkerJobQueue" in keys(resp)
+                @test resp == Dict(
+                    "StackId"=>"Stack Id",
+                    "StackName"=>"Stack Name",
+                    "Description"=>"Stack Description"
+                )
             end
         end
 
         @testset "ECR" begin
-            patch = @patch get_authorization_token() = GET_AUTH_TOKEN_RESP
+            @testset "Basic login" begin
+                patch = @patch get_authorization_token() = GET_AUTH_TOKEN_RESP
 
-            apply(patch; debug=true) do
-                docker_login = get_login()
-                @test docker_login == `docker login -u token -p password endpoint`
+                apply(patch; debug=true) do
+                    docker_login = get_login()
+                    @test docker_login == `docker login -u token -p password endpoint`
+                end
+            end
+
+            @testset "Login specifying registry Id" begin
+                patch = @patch get_authorization_token(; registryIds=Vector{Int}(1)) = GET_AUTH_TOKEN_RESP
+
+                apply(patch; debug=true) do
+                    docker_login = get_login([1])
+                    @test docker_login == `docker login -u token -p password endpoint`
+                end
             end
         end
 
@@ -50,10 +64,6 @@ include("mock.jl")
     end
 
     @testset "Online Tests" begin
-        @testset "Docker" begin
-            @test Docker.login() == true
-        end
-
         @testset "ECR" begin
             docker_login = get_login()
 

@@ -14,7 +14,7 @@ Gets the AWS ECR authorization token and returns the corresponding docker login 
 """
 function get_login(registry_ids::Vector{<:Integer}=Int[])
     resp = if !isempty(registry_ids)
-        get_authorization_token(registryIds=registry_ids)
+        @mock get_authorization_token(registryIds=registry_ids)
     else
         @mock get_authorization_token()
     end

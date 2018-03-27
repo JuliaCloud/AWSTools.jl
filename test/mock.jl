@@ -14,11 +14,9 @@ const DESCRIBE_STACKS_RESP = Dict(
     """
     <Stacks>
       <member>
-        <StackId>stackid</StackId>
-        <StackName>stackname</StackName>
-        <Description>Mocked stack description</Description>
-        <ManagerJobQueueArn>managerjobqueuearn</ManagerJobQueueArn>
-        <WorkerJobQueueName>workerjobqueuename</WorkerJobQueueName>
+        <StackId>Stack Id</StackId>
+        <StackName>Stack Name</StackName>
+        <Description>Stack Description</Description>
       </member>
     </Stacks>"""
 )

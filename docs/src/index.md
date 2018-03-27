@@ -42,7 +42,7 @@ true
 ### CloudFormation
 
 ```@docs
-AWSTools.CloudFormation.stack_outputs(::AbstractString)
+AWSTools.CloudFormation.stack_description(::AbstractString)
 ```
 
 ### Docker
