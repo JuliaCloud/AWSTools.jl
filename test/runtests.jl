@@ -4,6 +4,7 @@ Mocking.enable()
 using AWSTools
 using Base.Test
 
+import AWSTools.Docker
 import AWSTools.CloudFormation: stack_outputs
 import AWSTools.ECR: get_login
 import AWSTools.S3: S3Results
@@ -49,6 +50,10 @@ include("mock.jl")
     end
 
     @testset "Online Tests" begin
+        @testset "Docker" begin
+            @test Docker.login() == true
+        end
+
         @testset "ECR" begin
             docker_login = get_login()
 

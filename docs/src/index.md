@@ -45,6 +45,15 @@ true
 AWSTools.CloudFormation.stack_outputs(::AbstractString)
 ```
 
+### Docker
+
+```@docs
+AWSTools.Docker.login()
+AWSTools.Docker.pull(::AbstractString)
+AWSTools.Docker.push(::AbstractString)
+AWSTools.Docker.build(::AbstractString, ::AbstractString)
+```
+
 ### ECR
 
 ```@docs
