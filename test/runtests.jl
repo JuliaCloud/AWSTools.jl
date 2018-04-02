@@ -1,104 +1,78 @@
 using Mocking
 Mocking.enable()
 
-using Base.Test
 using AWSTools
-using Memento
-using AWSSDK
+using Base.Test
 
-import AWSSDK.Batch: describe_job_definitions
-
-const PKG_DIR = abspath(dirname(@__FILE__), "..")
-const REV = cd(() -> readchomp(`git rev-parse HEAD`), PKG_DIR)
-const IMAGE_DEFINITION = "292522074875.dkr.ecr.us-east-1.amazonaws.com/aws-tools:latest"
-const JOB_ROLE = "arn:aws:iam::292522074875:role/AWSBatchClusterManagerJobRole"
-const JOB_DEFINITION = "AWSTools"
-const JOB_NAME = "AWSToolTest"
-const JOB_QUEUE = "Replatforming-Manager"
-
-Memento.config("info"; fmt="[{level} | {name}]: {msg}")
+import AWSTools.Docker
+import AWSTools.CloudFormation: stack_description
+import AWSTools.ECR: get_login
+import AWSTools.S3: S3Results
 
 include("mock.jl")
 
-@testset "AWSTools" begin
-    @testset "Job Construction" begin
-        @testset "Defaults" begin
-            job = BatchJob()
-
-            @test job.vcpus == 1
-            @test job.memory == 1024
-            @test isempty(job.id)
-            @test isempty(job.image)
-            @test isempty(job.definition)
-            @test isempty(job.role)
-            @test job.output === nothing
-        end
-
-        @testset "From Job Definition" begin
-            patch = @patch describe_job_definitions(args...) = describe_jobs_def_resp
+@testset "AWSTools Tests" begin
+    @testset "Basic Tests" begin
+        @testset "CloudFormation" begin
+            patch = @patch describe_stacks(args...) = DESCRIBE_STACKS_RESP
 
             apply(patch; debug=true) do
-                job = BatchJob(name=JOB_NAME, definition="sleep60")
+                resp = stack_description("stackname")
 
-                @test job.cmd == `sleep 60`
-                @test job.image == "busybox"
-                @test job.output === nothing
+                @test resp == Dict(
+                    "StackId"=>"Stack Id",
+                    "StackName"=>"Stack Name",
+                    "Description"=>"Stack Description"
+                )
             end
         end
 
-        @testset "From Current Job" begin
-            withenv(BATCH_ENVS...) do
-                patches = [
-                    @patch readstring(cmd::AbstractCmd) = mock_readstring(cmd)
-                    @patch describe_jobs(args...) = describe_jobs_resp
-                ]
+        @testset "ECR" begin
+            @testset "Basic login" begin
+                patch = @patch get_authorization_token() = GET_AUTH_TOKEN_RESP
 
-                apply(patches; debug=true) do
-                    job = BatchJob()
+                apply(patch; debug=true) do
+                    docker_login = get_login()
+                    @test docker_login == `docker login -u token -p password endpoint`
+                end
+            end
 
-                    @test job.memory == 128
-                    @test job.image == "busybox"
-                    @test job.output === nothing
+            @testset "Login specifying registry Id" begin
+                patch = @patch get_authorization_token(; registryIds=Vector{Int}(1)) = GET_AUTH_TOKEN_RESP
+
+                apply(patch; debug=true) do
+                    docker_login = get_login([1])
+                    @test docker_login == `docker login -u token -p password endpoint`
                 end
             end
         end
 
-        @testset "From Multiple" begin
-            withenv(BATCH_ENVS...) do
-                patches = [
-                    @patch readstring(cmd::AbstractCmd) = mock_readstring(cmd)
-                    @patch describe_jobs(args...) = describe_jobs_resp
-                ]
+        @testset "S3" begin
+            function test_S3(folder::String)
+                DATA_DIR = joinpath(@__DIR__, "..", folder)
+                object = S3Results("AWSTools", "test")
+                download(object, DATA_DIR)
+                @test readdir(DATA_DIR) == ["test"]
+            end
 
-                apply(patches; debug=true) do
-                    job = BatchJob(output=S3Results("AWSTools", "test"))
+            patch = @patch get_object(; Bucket="", Key="") = GET_OBJECT_RESP
 
-                    @test job.memory == 128
-                    @test job.output !== nothing
-                end
+            apply(patch; debug=true) do
+                mktempdir(test_S3, joinpath(@__DIR__))
             end
         end
     end
 
-    @testset "Job Submission" begin
-        job = BatchJob(
-            name=JOB_NAME,
-            image=IMAGE_DEFINITION,
-            role=JOB_ROLE,
-            definition=JOB_DEFINITION,
-            queue=JOB_QUEUE,
-            vcpus=1,
-            memory=1024,
-            cmd=`julia -e 'println("Hello World!")'`,
-            output=S3Results("AWSTools", "test"),
-        )
+    @testset "Online Tests" begin
+        @testset "ECR" begin
+            docker_login = get_login()
 
-        submit(job)
-        wait(job, [AWSTools.SUCCEEDED])
-        deregister(job)
-        events = logs(job)
-
-        @test length(events) == 1
-        @test contains(first(events)["message"], "Hello World!")
+            resp = split(replace(string(docker_login), '`', ""), ' ')
+            @test resp[1] == "docker"
+            @test resp[2] == "login"
+            @test resp[3] == "-u"
+            @test resp[5] == "-p"
+            @test length(resp) == 7
+        end
     end
 end
