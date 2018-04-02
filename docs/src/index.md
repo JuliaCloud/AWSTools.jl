@@ -20,17 +20,14 @@ Currently the permissions AWSTools requires (if run in it's entirety) are:
 
 ## Basic Usage
 
-This example is using the ECR module. See the API for other uses of AWSTools.
+This example uses the Docker module directly and the ECR module indirectly. See the API for other uses of AWSTools.
 
 ```julia
 julia> using AWSTools
 
-julia> import AWSTools.ECR: get_login
+julia> using AWSTools.Docker
 
-julia> docker_login = get_login()
-`docker login -u AWS -p 00000...00000 https://000000000000.dkr.ecr.us-east-1.amazonaws.com`
-
-julia> success(pipeline(docker_login, stdout=STDOUT, stderr=STDERR))
+julia> Docker.login()
 WARNING! Using --password via the CLI is insecure. Use --password-stdin.
 Login Succeeded
 true
