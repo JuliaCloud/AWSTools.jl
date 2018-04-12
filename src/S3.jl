@@ -31,7 +31,7 @@ end
 
 Base.download(r::S3Results) = download(r, pwd())
 
-function Base.download(r::S3Results, dir::String)
+function Base.download(r::S3Results, dir::AbstractString)
     info(logger, "Downloading s3://$(r.bucket)/$(r.key) to $dir/$(r.key).")
     resp = @mock get_object(; Bucket=r.bucket, Key=r.key)
     write(joinpath(dir, r.key), resp)
