@@ -8,11 +8,11 @@ using Mocking
 import AWSSDK.ECR: get_authorization_token
 
 """
-    get_login(registry_ids::Vector{<:Integer}=Int[]) -> Cmd
+    get_login(registry_ids::AbstractVector{<:Integer}=Int[]) -> Cmd
 
 Gets the AWS ECR authorization token and returns the corresponding docker login command.
 """
-function get_login(registry_ids::Vector{<:Integer}=Int[])
+function get_login(registry_ids::AbstractVector{<:Integer}=Int[])
     resp = if !isempty(registry_ids)
         @mock get_authorization_token(registryIds=registry_ids)
     else

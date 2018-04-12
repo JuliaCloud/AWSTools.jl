@@ -15,11 +15,11 @@ function login(docker_login_cmd::Cmd=ECR.get_login())
 end
 
 """
-    pull(image::AbstractString, tags::Vector{<:AbstractString}=String[])
+    pull(image::AbstractString, tags::AbstractVector{<:AbstractString}=String[])
 
 Pulls a docker image and tags it if `tags` is specified.
 """
-function pull(image::AbstractString, tags::Vector{<:AbstractString}=String[])
+function pull(image::AbstractString, tags::AbstractVector{<:AbstractString}=String[])
     run(`docker pull $image`)
     for tag in tags
         run(`docker tag $image $tag`)
