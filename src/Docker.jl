@@ -1,7 +1,7 @@
 module Docker
 
 using AWSSDK
-using AWSTools.ECR
+using ..ECR
 
 """
     login(registry_id::Union{AbstractString, Integer}="")
