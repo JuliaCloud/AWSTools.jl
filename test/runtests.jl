@@ -6,6 +6,7 @@ using Base.Test
 
 import AWSTools.Docker
 import AWSTools.CloudFormation: stack_description
+using AWSTools.EC2: instance_availability_zone, instance_region
 import AWSTools.ECR: get_login
 import AWSTools.S3: S3Results
 
@@ -26,6 +27,20 @@ end
                 "StackName" => "Stack Name",
                 "Description" => "Stack Description"
             )
+        end
+    end
+
+    @testset "EC2" begin
+        @testset "instance_availability_zone" begin
+            apply(instance_availability_zone_patch) do
+                @test instance_availability_zone() == "us-east-1a"
+            end
+        end
+
+        @testset "instance_region" begin
+            apply(instance_availability_zone_patch) do
+                @test instance_region() == "us-east-1"
+            end
         end
     end
 
