@@ -46,17 +46,14 @@ end
     end
 
     @testset "S3" begin
-        function test_S3(folder::String)
-            DATA_DIR = joinpath(@__DIR__, "..", folder)
-            object = S3Results("AWSTools", "test")
-            download(object, DATA_DIR)
-            @test readdir(DATA_DIR) == ["test"]
-        end
-
         patch = @patch get_object(; Bucket="", Key="") = ""
 
-        apply(patch) do
-            mktempdir(test_S3, joinpath(@__DIR__))
+        mktempdir() do tmp_dir
+            apply(patch) do
+                object = S3Results("AWSTools", "test")
+                download(object, tmp_dir)
+                @test readdir(tmp_dir) == ["test"]
+            end
         end
     end
 
