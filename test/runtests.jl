@@ -5,10 +5,10 @@ using AWSTools
 using Base.Test
 
 import AWSTools.Docker
-import AWSTools.CloudFormation: stack_description
+using AWSTools.CloudFormation: stack_description
 using AWSTools.EC2: instance_availability_zone, instance_region
-import AWSTools.ECR: get_login
-import AWSTools.S3: S3Results
+using AWSTools.ECR: get_login
+using AWSTools.S3: S3Results
 
 include("patch.jl")
 

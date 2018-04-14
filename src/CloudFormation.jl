@@ -7,7 +7,7 @@ using Mocking
 using XMLDict
 using DataStructures: OrderedDict
 
-import AWSSDK.CloudFormation: describe_stacks
+using AWSSDK.CloudFormation: describe_stacks
 
 """
     stack_description(stack_name::AbstractString) -> AbstractDict
