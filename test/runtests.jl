@@ -1,5 +1,5 @@
 using Mocking
-Mocking.enable()
+Mocking.enable(force=true)
 
 using AWSTools
 using Base.Test
@@ -29,20 +29,16 @@ include("mock.jl")
 
         @testset "ECR" begin
             @testset "Basic login" begin
-                patch = @patch get_authorization_token() = GET_AUTH_TOKEN_RESP
-
-                apply(patch; debug=true) do
+                apply(get_authorization_token_patch) do
                     docker_login = get_login()
-                    @test docker_login == `docker login -u token -p password endpoint`
+                    @test docker_login == `docker login -u AWS -p password https://000000000000.dkr.ecr.us-east-1.amazonaws.com`
                 end
             end
 
-            @testset "Login specifying registry Id" begin
-                patch = @patch get_authorization_token(; registryIds=Vector{Int}(1)) = GET_AUTH_TOKEN_RESP
-
-                apply(patch; debug=true) do
-                    docker_login = get_login([1])
-                    @test docker_login == `docker login -u token -p password endpoint`
+            @testset "Login specifying registry ID" begin
+                apply(get_authorization_token_patch) do
+                    docker_login = get_login(1)
+                    @test docker_login == `docker login -u AWS -p password https://000000000001.dkr.ecr.us-east-1.amazonaws.com`
                 end
             end
         end
