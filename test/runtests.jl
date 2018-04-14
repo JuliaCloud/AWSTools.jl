@@ -9,13 +9,11 @@ import AWSTools.CloudFormation: stack_description
 import AWSTools.ECR: get_login
 import AWSTools.S3: S3Results
 
-include("mock.jl")
+include("patch.jl")
 
 @testset "AWSTools Tests" begin
     @testset "CloudFormation" begin
-        patch = @patch describe_stacks(args...) = DESCRIBE_STACKS_RESP
-
-        apply(patch; debug=true) do
+        apply(describe_stacks_patch) do
             resp = stack_description("stackname")
 
             @test resp == Dict(
@@ -50,9 +48,9 @@ include("mock.jl")
             @test readdir(DATA_DIR) == ["test"]
         end
 
-        patch = @patch get_object(; Bucket="", Key="") = GET_OBJECT_RESP
+        patch = @patch get_object(; Bucket="", Key="") = ""
 
-        apply(patch; debug=true) do
+        apply(patch) do
             mktempdir(test_S3, joinpath(@__DIR__))
         end
     end

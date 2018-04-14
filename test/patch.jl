@@ -13,15 +13,17 @@ get_authorization_token_patch = @patch function get_authorization_token(; regist
     )
 end
 
-const DESCRIBE_STACKS_RESP = Dict(
-    "DescribeStacksResult" =>
-    """
-    <Stacks>
-      <member>
-        <StackId>Stack Id</StackId>
-        <StackName>Stack Name</StackName>
-        <Description>Stack Description</Description>
-      </member>
-    </Stacks>"""
-)
+describe_stacks_patch = @patch function describe_stacks(args...)
+    Dict(
+        "DescribeStacksResult" =>
+        """
+        <Stacks>
+          <member>
+            <StackId>Stack Id</StackId>
+            <StackName>Stack Name</StackName>
+            <Description>Stack Description</Description>
+          </member>
+        </Stacks>"""
+    )
+end
 
