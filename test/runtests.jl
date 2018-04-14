@@ -11,6 +11,11 @@ import AWSTools.S3: S3Results
 
 include("patch.jl")
 
+# TODO: Include in Base
+function Base.convert(::Type{Vector{String}}, cmd::Cmd)
+    cmd.exec
+end
+
 @testset "AWSTools Tests" begin
     @testset "CloudFormation" begin
         apply(describe_stacks_patch) do
@@ -57,14 +62,13 @@ include("patch.jl")
 
     @testset "Online Tests" begin
         @testset "ECR" begin
-            docker_login = get_login()
-
-            resp = split(replace(string(docker_login), '`', ""), ' ')
-            @test resp[1] == "docker"
-            @test resp[2] == "login"
-            @test resp[3] == "-u"
-            @test resp[5] == "-p"
-            @test length(resp) == 7
+            command = convert(Vector{String}, get_login())
+            @test command[1] == "docker"
+            @test command[2] == "login"
+            @test command[3] == "-u"
+            @test command[4] == "AWS"
+            @test command[5] == "-p"
+            @test length(command) == 7
         end
     end
 end
