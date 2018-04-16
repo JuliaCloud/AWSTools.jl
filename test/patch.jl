@@ -6,8 +6,7 @@ instance_availability_zone_patch = @patch function readstring(cmd::CmdRedirect)
     return "us-east-1a"
 end
 
-# TODO: Switch default from `Vector{Any}()` to `[]` when Mocking 0.5.2 is released
-get_authorization_token_patch = @patch function get_authorization_token(; registryIds::AbstractVector=Vector{Any}())
+get_authorization_token_patch = @patch function get_authorization_token(; registryIds::AbstractVector=[])
     id = lpad(isempty(registryIds) ? "" : first(registryIds), 12, '0')
     Dict(
         "authorizationData" => [
