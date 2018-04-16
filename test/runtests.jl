@@ -1,78 +1,86 @@
 using Mocking
-Mocking.enable()
+Mocking.enable(force=true)
 
 using AWSTools
 using Base.Test
 
 import AWSTools.Docker
-import AWSTools.CloudFormation: stack_description
-import AWSTools.ECR: get_login
-import AWSTools.S3: S3Results
+using AWSTools.CloudFormation: stack_description
+using AWSTools.EC2: instance_availability_zone, instance_region
+using AWSTools.ECR: get_login
+using AWSTools.S3: S3Results
 
-include("mock.jl")
+include("patch.jl")
+
+# TODO: Include in Base
+function Base.convert(::Type{Vector{String}}, cmd::Cmd)
+    cmd.exec
+end
 
 @testset "AWSTools Tests" begin
-    @testset "Basic Tests" begin
-        @testset "CloudFormation" begin
-            patch = @patch describe_stacks(args...) = DESCRIBE_STACKS_RESP
+    @testset "CloudFormation" begin
+        apply(describe_stacks_patch) do
+            resp = stack_description("stackname")
 
-            apply(patch; debug=true) do
-                resp = stack_description("stackname")
+            @test resp == Dict(
+                "StackId" => "Stack Id",
+                "StackName" => "Stack Name",
+                "Description" => "Stack Description"
+            )
+        end
+    end
 
-                @test resp == Dict(
-                    "StackId"=>"Stack Id",
-                    "StackName"=>"Stack Name",
-                    "Description"=>"Stack Description"
-                )
+    @testset "EC2" begin
+        @testset "instance_availability_zone" begin
+            apply(instance_availability_zone_patch) do
+                @test instance_availability_zone() == "us-east-1a"
             end
         end
 
-        @testset "ECR" begin
-            @testset "Basic login" begin
-                patch = @patch get_authorization_token() = GET_AUTH_TOKEN_RESP
-
-                apply(patch; debug=true) do
-                    docker_login = get_login()
-                    @test docker_login == `docker login -u token -p password endpoint`
-                end
+        @testset "instance_region" begin
+            apply(instance_availability_zone_patch) do
+                @test instance_region() == "us-east-1"
             end
+        end
+    end
 
-            @testset "Login specifying registry Id" begin
-                patch = @patch get_authorization_token(; registryIds=Vector{Int}(1)) = GET_AUTH_TOKEN_RESP
-
-                apply(patch; debug=true) do
-                    docker_login = get_login([1])
-                    @test docker_login == `docker login -u token -p password endpoint`
-                end
+    @testset "ECR" begin
+        @testset "Basic login" begin
+            apply(get_authorization_token_patch) do
+                docker_login = get_login()
+                @test docker_login == `docker login -u AWS -p password https://000000000000.dkr.ecr.us-east-1.amazonaws.com`
             end
         end
 
-        @testset "S3" begin
-            function test_S3(folder::String)
-                DATA_DIR = joinpath(@__DIR__, "..", folder)
+        @testset "Login specifying registry ID" begin
+            apply(get_authorization_token_patch) do
+                docker_login = get_login(1)
+                @test docker_login == `docker login -u AWS -p password https://000000000001.dkr.ecr.us-east-1.amazonaws.com`
+            end
+        end
+    end
+
+    @testset "S3" begin
+        patch = @patch get_object(; Bucket="", Key="") = ""
+
+        mktempdir() do tmp_dir
+            apply(patch) do
                 object = S3Results("AWSTools", "test")
-                download(object, DATA_DIR)
-                @test readdir(DATA_DIR) == ["test"]
-            end
-
-            patch = @patch get_object(; Bucket="", Key="") = GET_OBJECT_RESP
-
-            apply(patch; debug=true) do
-                mktempdir(test_S3, joinpath(@__DIR__))
+                download(object, tmp_dir)
+                @test readdir(tmp_dir) == ["test"]
             end
         end
     end
 
     @testset "Online Tests" begin
         @testset "ECR" begin
-            docker_login = get_login()
-
-            resp = split(replace(string(docker_login), '`', ""), ' ')
-            @test resp[1] == "docker"
-            @test resp[2] == "login"
-            @test resp[3] == "-u"
-            @test resp[5] == "-p"
-            @test length(resp) == 7
+            command = convert(Vector{String}, get_login())
+            @test command[1] == "docker"
+            @test command[2] == "login"
+            @test command[3] == "-u"
+            @test command[4] == "AWS"
+            @test command[5] == "-p"
+            @test length(command) == 7
         end
     end
 end

@@ -1,17 +1,19 @@
-__precompile__()
-
 module Docker
 
 using AWSSDK
-using AWSTools.ECR
+using ..ECR
 
 """
-    login(docker_login_cmd=ECR.get_login())
+    login(registry_id::Union{AbstractString, Integer}="")
 
 Gets the AWS ECR authorization token and runs the corresponding docker login command.
 """
-function login(docker_login_cmd::Cmd=ECR.get_login())
-    success(pipeline(docker_login_cmd, stdout=STDOUT, stderr=STDERR))
+function login(registry_id::Union{AbstractString, Integer}="")
+    login(ECR.get_login(registry_id))
+end
+
+function login(docker_login::Cmd)
+    success(pipeline(docker_login, stdout=STDOUT, stderr=STDERR))
 end
 
 """

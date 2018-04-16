@@ -1,14 +1,13 @@
-__precompile__()
-
 module S3
 
 using AWSSDK
 using Memento
 using Mocking
 
-import AWSSDK.S3: get_object
+using AWSSDK.S3: get_object
 
 const logger = getlogger(current_module())
+
 # Register the module level logger at runtime so that folks can access the logger via `getlogger(MyModule)`
 # NOTE: If this line is not included then the precompiled `MyModule.logger` won't be registered at runtime.
 __init__() = Memento.register(logger)
