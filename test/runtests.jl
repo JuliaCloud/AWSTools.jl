@@ -5,6 +5,7 @@ using AWSTools
 using Base.Test
 
 import AWSTools.Docker
+using AWSTools: account_id
 using AWSTools.CloudFormation: stack_description
 using AWSTools.EC2: instance_availability_zone, instance_region
 using AWSTools.ECR: get_login
@@ -18,6 +19,12 @@ function Base.convert(::Type{Vector{String}}, cmd::Cmd)
 end
 
 @testset "AWSTools Tests" begin
+    @testset "account_id" begin
+        apply(get_caller_identity) do
+            @test ismatch(r"^\d{12}$", account_id())
+        end
+    end
+
     @testset "CloudFormation" begin
         apply(describe_stacks_patch) do
             resp = stack_description("stackname")

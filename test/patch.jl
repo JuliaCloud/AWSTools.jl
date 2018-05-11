@@ -1,5 +1,14 @@
 using Base: CmdRedirect
 
+get_caller_identity = @patch function get_caller_identity()
+    account_id = join(rand(0:9, 12), "")
+    Dict(
+        "Account" => account_id,
+        "Arn" => "arn:aws:iam::$account_id:user/UserName",
+        "UserId" => join(rand('A':'Z', 21), ""),
+    )
+end
+
 instance_availability_zone_patch = @patch function readstring(cmd::CmdRedirect)
     url = cmd.cmd.exec[2]
     @assert endswith(url, "availability-zone")
