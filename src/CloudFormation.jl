@@ -7,6 +7,8 @@ using DataStructures: OrderedDict
 
 using AWSSDK.CloudFormation: describe_stacks
 
+export stack_description, stack_output
+
 """
     stack_description(stack_name::AbstractString) -> AbstractDict
 
