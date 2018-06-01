@@ -8,7 +8,7 @@ using Mocking
 using XMLDict
 
 using AWSSDK.S3: list_objects_v2
-using Compat: @__MODULE__
+using Compat: @__MODULE__, Nothing
 
 export S3Path, sync, upload
 
@@ -222,7 +222,7 @@ function list_files(path::S3Path; config::AWSConfig=default_aws_config())
             object = S3Path(
                 path.bucket,
                 item["Key"];
-                size=parse(item["Size"]),
+                size=Meta.parse(item["Size"]),
                 last_modified=last_modified,
             )
             !isdir(object) && push!(all_objects, object)
@@ -286,7 +286,7 @@ end
 Returns true if the `src` file is newer or of different size than `dest`.
 """
 should_sync
-should_sync(src::AbstractPath, dest::Void) = true
+should_sync(src::AbstractPath, dest::Nothing) = true
 
 function should_sync(src::AbstractPath, dest::AbstractPath)
     same_size = size(src) == size(dest)

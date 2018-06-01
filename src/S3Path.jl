@@ -1,6 +1,7 @@
 using AWSSDK.S3: get_object, put_object, delete_object, copy_object
 using Base: @deprecate
-using Compat: split  # Requires Compat v1.0.0
+using Compat: replace, split
+using Compat.Dates
 
 """
     S3Path <: AbstractPath
@@ -28,7 +29,7 @@ struct S3Path <: AbstractPath
 end
 
 function S3Path(pieces::Tuple, path::AbstractString, size::Integer, last_modified::DateTime)
-    components = split(replace(path, r"^s3://", s""), "/"; limit=2)
+    components = split(replace(path, r"^s3://" => s""), "/"; limit=2, keepempty=false)
     bucket = components[1]
     key = length(components) > 1 ? components[2] : ""
     S3Path(pieces, bucket, key, size, last_modified)
@@ -93,7 +94,7 @@ end
 Base.String(object::S3Path) = joinpath(parts(object)...)
 FilePaths.parts(object::S3Path) = object.parts
 root(path::S3Path) = ""
-drive(path::S3Path) = ("s3://", replace(path, r"^s3://", s""))
+drive(path::S3Path) = ("s3://", replace(path, r"^s3://" => s""))
 
 # S3Path specific methods
 Base.show(io::IO, object::S3Path) = print(io, "p\"$(String(object))\"")

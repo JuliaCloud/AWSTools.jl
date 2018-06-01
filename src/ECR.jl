@@ -2,6 +2,7 @@ module ECR
 
 using AWSCore
 using Mocking
+using Compat.Base64
 
 using AWSSDK.ECR: get_authorization_token
 

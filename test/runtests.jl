@@ -2,7 +2,8 @@ using Mocking
 Mocking.enable(force=true)
 
 using AWSTools
-using Base.Test
+using Compat: occursin
+using Compat.Test
 using Memento
 
 import AWSTools.Docker
@@ -28,7 +29,7 @@ end
 
     @testset "account_id" begin
         apply(get_caller_identity) do
-            @test ismatch(r"^\d{12}$", account_id())
+            @test occursin(r"^\d{12}$", account_id())
         end
     end
 

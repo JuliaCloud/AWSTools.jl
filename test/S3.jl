@@ -5,6 +5,8 @@ using AWSTools.CloudFormation: stack_output
 using AWSTools.S3: list_files, sync_key
 using AWSSDK.S3: put_object, create_bucket
 
+using Compat.UUIDs
+
 setlevel!(getlogger(AWSTools.S3), "info")
 
 # Enables the running of the "batch" online tests. e.g ONLINE=batch
@@ -472,14 +474,14 @@ end
 
                 # Create bucket for tests
                 if isempty(AWS_BUCKET)
-                    bucket = "awstools-s3-test-temp-" * string(Base.Random.uuid4())
+                    bucket = string("awstools-s3-test-temp-", uuid4())
                     info("Creating S3 bucket $bucket")
                     create_bucket(Dict("Bucket" => bucket))
                 else
                     bucket = AWS_BUCKET
                 end
 
-                test_run_id = string(Base.Random.uuid4())
+                test_run_id = string(uuid4())
 
                 try
                     @testset "Upload to s3" begin
