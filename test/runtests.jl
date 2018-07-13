@@ -33,7 +33,7 @@ end
                 @test resp == Dict(
                     "StackId" => "Stack Id",
                     "StackName" => "Stack Name",
-                    "Description" => "Stack Description"
+                    "Description" => "Stack Description",
                 )
             end
 
@@ -47,7 +47,7 @@ end
                 outputs = stack_output("multiple-stack-outputs-stackname")
                 @test outputs == Dict(
                     "TestBucketArn1" => "arn:aws:s3:::test-bucket-1",
-                    "TestBucketArn2" => "arn:aws:s3:::test-bucket-2"
+                    "TestBucketArn2" => "arn:aws:s3:::test-bucket-2",
                 )
             end
         end

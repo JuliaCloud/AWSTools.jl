@@ -3,9 +3,10 @@ module CloudFormation
 using AWSSDK
 using Mocking
 using XMLDict
-using DataStructures: OrderedDict
 
 using AWSSDK.CloudFormation: describe_stacks
+using Compat: AbstractDict
+using DataStructures: OrderedDict
 
 export stack_description, stack_output
 
@@ -31,7 +32,7 @@ function stack_output(stack_name::AbstractString)
     if "Outputs" in keys(description)
         stack_outputs = description["Outputs"]["member"]
 
-        if isa(stack_outputs, OrderedDict) # Only 1 stack output
+        if isa(stack_outputs, AbstractDict) # Only 1 stack output
             outputs[stack_outputs["OutputKey"]] = stack_outputs["OutputValue"]
         else
             for item in stack_outputs # More than 1 stack output
