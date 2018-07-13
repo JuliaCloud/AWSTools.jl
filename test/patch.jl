@@ -28,16 +28,67 @@ get_authorization_token_patch = @patch function get_authorization_token(; regist
 end
 
 describe_stacks_patch = @patch function describe_stacks(args...)
-    Dict(
-        "DescribeStacksResult" =>
+    responses = Dict(
+       Dict("StackName" => "stackname") =>
         """
-        <Stacks>
-          <member>
-            <StackId>Stack Id</StackId>
-            <StackName>Stack Name</StackName>
-            <Description>Stack Description</Description>
-          </member>
-        </Stacks>"""
+        <DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+          <DescribeStacksResult>
+              <Stacks>
+                <member>
+                  <StackId>Stack Id</StackId>
+                  <StackName>Stack Name</StackName>
+                  <Description>Stack Description</Description>
+                </member>
+              </Stacks>
+          </DescribeStacksResult>
+        </DescribeStacksResponse>
+        """,
+        Dict("StackName" => "1-stack-output-stackname") =>
+        """
+        <DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+          <DescribeStacksResult>
+            <Stacks>
+              <member>
+                <Outputs>
+                  <member>
+                    <OutputKey>TestBucketArn1</OutputKey>
+                    <OutputValue>arn:aws:s3:::test-bucket-1</OutputValue>
+                  </member>
+                </Outputs>
+                <StackId>Stack Id</StackId>
+                <StackName>Stack Name</StackName>
+                <Description>Stack Description</Description>
+              </member>
+            </Stacks>
+          </DescribeStacksResult>
+        </DescribeStacksResponse>
+        """,
+        Dict("StackName" => "multiple-stack-outputs-stackname") =>
+        """
+        <DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+          <DescribeStacksResult>
+            <Stacks>
+              <member>
+                <Outputs>
+                  <member>
+                    <OutputKey>TestBucketArn1</OutputKey>
+                    <OutputValue>arn:aws:s3:::test-bucket-1</OutputValue>
+                  </member>
+                  <member>
+                    <OutputKey>TestBucketArn2</OutputKey>
+                    <OutputValue>arn:aws:s3:::test-bucket-2</OutputValue>
+                  </member>
+                </Outputs>
+                <StackId>Stack Id</StackId>
+                <StackName>Stack Name</StackName>
+                <Description>Stack Description</Description>
+              </member>
+            </Stacks>
+          </DescribeStacksResult>
+        </DescribeStacksResponse>
+        """,
     )
+
+    return responses[args[1]]
 end
 
