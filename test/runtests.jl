@@ -6,7 +6,7 @@ using Base.Test
 
 import AWSTools.Docker
 using AWSTools: account_id
-using AWSTools.CloudFormation: stack_description
+using AWSTools.CloudFormation: stack_description, stack_output
 using AWSTools.EC2: instance_availability_zone, instance_region
 using AWSTools.ECR: get_login
 using AWSTools.S3: S3Results
@@ -27,13 +27,29 @@ end
 
     @testset "CloudFormation" begin
         apply(describe_stacks_patch) do
-            resp = stack_description("stackname")
 
-            @test resp == Dict(
-                "StackId" => "Stack Id",
-                "StackName" => "Stack Name",
-                "Description" => "Stack Description"
-            )
+            @testset "stack_description" begin
+                resp = stack_description("stackname")
+                @test resp == Dict(
+                    "StackId" => "Stack Id",
+                    "StackName" => "Stack Name",
+                    "Description" => "Stack Description",
+                )
+            end
+
+            @testset "stack_output" begin
+                outputs = stack_output("stackname")
+                @test outputs == Dict()
+
+                outputs = stack_output("1-stack-output-stackname")
+                @test outputs == Dict("TestBucketArn1"=>"arn:aws:s3:::test-bucket-1")
+
+                outputs = stack_output("multiple-stack-outputs-stackname")
+                @test outputs == Dict(
+                    "TestBucketArn1" => "arn:aws:s3:::test-bucket-1",
+                    "TestBucketArn2" => "arn:aws:s3:::test-bucket-2",
+                )
+            end
         end
     end
 
