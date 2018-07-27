@@ -1,4 +1,5 @@
 using Base: CmdRedirect
+using AWSCore: AWSConfig
 
 get_caller_identity = @patch function get_caller_identity()
     account_id = join(rand(0:9, 12), "")
@@ -15,7 +16,7 @@ instance_availability_zone_patch = @patch function readstring(cmd::CmdRedirect)
     return "us-east-1a"
 end
 
-get_authorization_token_patch = @patch function get_authorization_token(; registryIds::AbstractVector=[])
+get_authorization_token_patch = @patch function get_authorization_token(config::AWSConfig; registryIds::AbstractVector=[])
     id = lpad(isempty(registryIds) ? "" : first(registryIds), 12, '0')
     Dict(
         "authorizationData" => [
@@ -89,6 +90,6 @@ describe_stacks_patch = @patch function describe_stacks(args...)
         """,
     )
 
-    return responses[args[1]]
+    return responses[args[2]]
 end
 

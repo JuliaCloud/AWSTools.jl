@@ -1,4 +1,5 @@
 julia 0.6
+AWSCore 0.3
 AWSSDK 0.2.0
 Compat 0.41.0
 DataStructures 0.2.9

@@ -84,7 +84,7 @@ end
     end
 
     @testset "S3" begin
-        patch = @patch get_object(; Bucket="", Key="") = ""
+        patch = @patch get_object(config; Bucket="", Key="") = ""
 
         mktempdir() do tmp_dir
             apply(patch) do
