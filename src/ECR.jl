@@ -40,7 +40,4 @@ function get_login(registry_id::Integer; config::AWSConfig=default_aws_config())
     get_login(lpad(registry_id, 12, '0'); config=config)
 end
 
-# AWSTools 0.1.0 deprecation
-@deprecate get_login(ids::AbstractVector) get_login.(ids)
-
 end  # ECR
