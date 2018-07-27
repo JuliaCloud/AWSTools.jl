@@ -1,24 +1,109 @@
 stages:
   - test
+  - online-test
   - coverage
   - docs
 
-"Online Tests":
-  stage: test
-  image: 292522074875.dkr.ecr.us-east-1.amazonaws.com/julia-gitlab-ci:0.6
-  variables:
-    LIVE: "true"  # Runs the online tests against AWS
+
+.test_shell: &test_shell
   artifacts:
     name: "$CI_JOB_NAME coverage"
     expire_in: 1 week
     paths:
       - "$CI_JOB_NAME coverage/"
+  before_script:
+    - curl -s -o julia-ci https://gitlab.invenia.ca/infrastructure/gitlab-ci-helper/raw/master/julia-ci
+    - chmod +x julia-ci
+    - ./julia-ci install $JULIA_VERSION
   script:
-    - julia --compilecache=no -e "Pkg.clone(pwd()); Pkg.build(\"$PKG_NAME\"); Pkg.test(\"$PKG_NAME\"; coverage=true)"
-    - julia-coverage "$PKG_NAME"
+    - source julia-ci export
+    - julia -e "Pkg.clone(pwd()); Pkg.build(\"$PKG_NAME\"); Pkg.test(\"$PKG_NAME\"; coverage=true)"
+    - ./julia-ci coverage
+  after_script:
+    - ./julia-ci clean
+
+.test_shell_06: &test_shell_06
+  variables:
+    JULIA_VERSION: "0.6"
+    ONLINE: ""
+  <<: *test_shell
+
+.test_shell_07-: &test_shell_07-
+  variables:
+    JULIA_VERSION: "0.7-"
+    ONLINE: ""
+  allow_failure: true
+  <<: *test_shell
+
+.test_docker: &test_docker
+  artifacts:
+    name: coverage
+    expire_in: 1 week
+    paths:
+      - "$CI_JOB_NAME coverage/"
+  variables:
+    ONLINE: ""
+  script:
+    - julia -e "Pkg.clone(pwd()); Pkg.build(\"$PKG_NAME\"); Pkg.test(\"$PKG_NAME\"; coverage=true)"
+    - julia-coverage $PKG_NAME
+
+.test_docker_06: &test_docker_06
+  image: 292522074875.dkr.ecr.us-east-1.amazonaws.com/julia-gitlab-ci:0.6
+  <<: *test_docker
+
+
+"0.6 (Mac)":
+  tags:
+    - mac
+    - shell-ci
+  <<: *test_shell_06
+
+"0.6 (Linux, 64-bit)":
   tags:
     - linux
+    - 64-bit
     - docker-ci
+  <<: *test_docker_06
+
+"0.7- (Mac)":
+  tags:
+    - mac
+    - shell-ci
+  <<: *test_shell_07-
+
+"0.7- (Linux, 64-bit)":
+  tags:
+    - linux
+    - 64-bit
+    - shell-ci
+  <<: *test_shell_07-
+
+"Online Tests":
+  stage: online-test
+  tags:
+    - ecr
+    - linux
+    - shell-ci
+  artifacts:
+    name: "$CI_JOB_NAME coverage"
+    expire_in: 1 week
+    paths:
+      - "$CI_JOB_NAME coverage/"
+  variables:
+    JULIA_VERSION: "0.6"
+  before_script:
+    - curl -s -o julia-ci https://gitlab.invenia.ca/infrastructure/gitlab-ci-helper/raw/master/julia-ci
+    - chmod +x julia-ci
+    - ./julia-ci install $JULIA_VERSION
+  script:
+    - source julia-ci export
+    - export PATH="$PATH:/usr/local/bin"
+    - unset SSL_CERT_DIR  # https://github.com/JuliaLang/julia/issues/20439
+    - julia -e "Pkg.clone(pwd()); Pkg.build(\"$PKG_NAME\"); Pkg.test(\"$PKG_NAME\"; coverage=true)"
+    - ./julia-ci coverage
+  after_script:
+    - ./julia-ci clean
+
 
 "Coverage":
   stage: coverage
