@@ -1,15 +1,22 @@
 module Docker
 
+using AWSCore
 using AWSSDK
 using ..ECR
+
+export login, pull, push, build
 
 """
     login(registry_id::Union{AbstractString, Integer}="")
 
 Gets the AWS ECR authorization token and runs the corresponding docker login command.
+Takes an optional AWS `config` keyword argument or uses the default.
 """
-function login(registry_id::Union{AbstractString, Integer}="")
-    login(ECR.get_login(registry_id))
+function login(
+    registry_id::Union{AbstractString, Integer}="";
+    config::AWSConfig=default_aws_config()
+)
+    login(ECR.get_login(registry_id; config=config))
 end
 
 function login(docker_login::Cmd)

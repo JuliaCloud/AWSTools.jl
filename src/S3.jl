@@ -4,6 +4,7 @@ using AWSSDK
 using Memento
 using Mocking
 
+using AWSCore
 using AWSSDK.S3: get_object
 
 const logger = getlogger(current_module())
@@ -28,11 +29,17 @@ struct S3Results
     key::String
 end
 
-Base.download(r::S3Results) = download(r, pwd())
+function Base.download(r::S3Results; config::AWSConfig=default_aws_config())
+    download(r, pwd(); config=config)
+end
 
-function Base.download(r::S3Results, dir::AbstractString)
+function Base.download(
+    r::S3Results,
+    dir::AbstractString;
+    config::AWSConfig=default_aws_config()
+)
     info(logger, "Downloading s3://$(r.bucket)/$(r.key) to $dir/$(r.key).")
-    resp = @mock get_object(; Bucket=r.bucket, Key=r.key)
+    resp = @mock get_object(config, Bucket=r.bucket, Key=r.key)
     write(joinpath(dir, r.key), resp)
 end
 
