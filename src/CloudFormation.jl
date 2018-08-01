@@ -1,6 +1,5 @@
 module CloudFormation
 
-using AWSSDK
 using Mocking
 using XMLDict
 

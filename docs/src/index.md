@@ -17,6 +17,9 @@ Currently the permissions AWSTools requires (if run in it's entirety) are:
   - cloudformation:DescribeStacks
   - ecr:GetAuthorizationToken
   - s3:GetObject
+  - s3:ListBucket
+  - s3:PutObject
+  - s3:DeleteObject
 
 ## Basic Usage
 
@@ -40,6 +43,7 @@ true
 
 ```@docs
 AWSTools.CloudFormation.stack_description(::AbstractString)
+AWSTools.CloudFormation.stack_output(::AbstractString)
 ```
 
 ### Docker
@@ -54,11 +58,38 @@ AWSTools.Docker.build(::AbstractString, ::AbstractString)
 ### ECR
 
 ```@docs
-AWSTools.ECR.get_login(::Vector{<:Integer}=Int[])
+AWSTools.ECR.get_login
+```
+
+### EC2
+
+```@docs
+AWSTools.EC2.instance_availability_zone()
+AWSTools.EC2.instance_region()
 ```
 
 ### S3
 
+#### Exported
+
 ```@docs
-AWSTools.S3.S3Results
+AWSTools.S3.S3Path
+AWSTools.S3.S3Path(::Tuple)
+AWSTools.S3.S3Path(::FilePaths.AbstractPath)
+AWSTools.S3.S3Path(::AbstractString, ::AbstractString)
+AWSTools.S3.sync(::AbstractString, ::AbstractString)
+AWSTools.S3.sync(::FilePaths.AbstractPath, ::FilePaths.AbstractPath)
+AWSTools.S3.upload
 ```
+
+#### Internal use 
+
+```@docs
+AWSTools.S3.list_files(::FilePaths.AbstractPath)
+AWSTools.S3.list_files(::AWSTools.S3.S3Path)
+AWSTools.S3.AbstractPath(::AbstractString)
+AWSTools.S3.cleanup_empty_folders(::FilePaths.AbstractPath)
+AWSTools.S3.sync_key(::FilePaths.AbstractPath, ::FilePaths.AbstractPath)
+AWSTools.S3.should_sync
+```
+

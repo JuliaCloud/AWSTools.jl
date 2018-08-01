@@ -3,13 +3,17 @@ Mocking.enable(force=true)
 
 using AWSTools
 using Base.Test
+using Memento
 
 import AWSTools.Docker
 using AWSTools: account_id
 using AWSTools.CloudFormation: stack_description, stack_output
 using AWSTools.EC2: instance_availability_zone, instance_region
 using AWSTools.ECR: get_login
-using AWSTools.S3: S3Results
+
+Memento.config!("debug"; fmt="[{level} | {name}]: {msg}")
+ # Need this so that submodules are able to use the debug log level
+setlevel!(getlogger(AWSTools), "debug")
 
 include("patch.jl")
 
@@ -19,6 +23,9 @@ function Base.convert(::Type{Vector{String}}, cmd::Cmd)
 end
 
 @testset "AWSTools Tests" begin
+
+    include("S3.jl")
+
     @testset "account_id" begin
         apply(get_caller_identity) do
             @test ismatch(r"^\d{12}$", account_id())
@@ -79,18 +86,6 @@ end
             apply(get_authorization_token_patch) do
                 docker_login = get_login(1)
                 @test docker_login == `docker login -u AWS -p password https://000000000001.dkr.ecr.us-east-1.amazonaws.com`
-            end
-        end
-    end
-
-    @testset "S3" begin
-        patch = @patch get_object(config; Bucket="", Key="") = ""
-
-        mktempdir() do tmp_dir
-            apply(patch) do
-                object = S3Results("AWSTools", "test")
-                download(object, tmp_dir)
-                @test readdir(tmp_dir) == ["test"]
             end
         end
     end

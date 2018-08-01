@@ -1,7 +1,6 @@
 module Docker
 
 using AWSCore
-using AWSSDK
 using ..ECR
 
 export login, pull, push, build
