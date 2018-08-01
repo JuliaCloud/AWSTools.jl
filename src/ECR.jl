@@ -1,9 +1,8 @@
 module ECR
 
-using AWSSDK
+using AWSCore
 using Mocking
 
-using AWSCore
 using AWSSDK.ECR: get_authorization_token
 
 export get_login
@@ -23,7 +22,7 @@ function get_login(registry_id::AbstractString=""; config::AWSConfig=default_aws
     # passed in. Because of these factors we'll do our processing on a single registry.
 
     response = if !isempty(registry_id)
-        @mock get_authorization_token(config, registryIds=[registry_id])
+        @mock get_authorization_token(config; registryIds=[registry_id])
     else
         @mock get_authorization_token(config)
     end
