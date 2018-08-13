@@ -5,7 +5,7 @@ using XMLDict
 
 using AWSCore
 using AWSSDK.CloudFormation: describe_stacks
-using Compat: AbstractDict, Nothing
+using Compat: AbstractDict
 using DataStructures: OrderedDict
 
 export stack_description, stack_output
@@ -31,7 +31,7 @@ The stack's OutputKey and OutputValue values as a dictionary. Can pass in the aw
 as a keyword argument.
 """
 function stack_output(stack_name::AbstractString; config::AWSConfig=default_aws_config())
-    outputs = OrderedDict{String, Union{String, Nothing}}()
+    outputs = OrderedDict{String, String}()
     description = stack_description(stack_name; config=config)
 
     if "Outputs" in keys(description)
@@ -53,7 +53,14 @@ end
 
 function output_pair(item::AbstractDict)
     key = item["OutputKey"]::String
-    value = isa(item["OutputValue"], String) ? item["OutputValue"]::String : nothing
+    value = if isa(item["OutputValue"], String)
+        item["OutputValue"]::String
+    elseif isa(item["OutputValue"], AbstractDict) && isempty(item["OutputValue"])
+        ""
+    else
+        throw(ArgumentError("Unhandled output value: $(repr(item["OutputValue"]))"))
+    end
+
     return key => value
 end
 

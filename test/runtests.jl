@@ -60,7 +60,7 @@ end
                 # Empty output values
                 outputs = stack_output("empty-value")
                 @test outputs == Dict(
-                    "ParquetConversionTriggerName" => nothing,
+                    "ParquetConversionTriggerName" => "",
                 )
             end
         end
