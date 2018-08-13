@@ -37,16 +37,31 @@ function stack_output(stack_name::AbstractString; config::AWSConfig=default_aws_
     if "Outputs" in keys(description)
         stack_outputs = description["Outputs"]["member"]
 
-        if isa(stack_outputs, AbstractDict) # Only 1 stack output
-            outputs[stack_outputs["OutputKey"]] = stack_outputs["OutputValue"]
+        if isa(stack_outputs, AbstractDict)
+            # Only 1 stack output
+            push!(outputs, output_pair(stack_outputs))
         else
-            for item in stack_outputs # More than 1 stack output
-                outputs[item["OutputKey"]] = item["OutputValue"]
+            # More than 1 stack output
+            for item in stack_outputs
+                push!(outputs, output_pair(item))
             end
         end
     end
 
     return outputs
+end
+
+function output_pair(item::AbstractDict)
+    key = item["OutputKey"]::String
+    value = if isa(item["OutputValue"], String)
+        item["OutputValue"]::String
+    elseif isa(item["OutputValue"], AbstractDict) && isempty(item["OutputValue"])
+        ""
+    else
+        throw(ArgumentError("Unhandled output value: $(repr(item["OutputValue"]))"))
+    end
+
+    return key => value
 end
 
 end  # CloudFormation

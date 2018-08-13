@@ -88,6 +88,26 @@ describe_stacks_patch = @patch function describe_stacks(args...)
           </DescribeStacksResult>
         </DescribeStacksResponse>
         """,
+        Dict("StackName" => "empty-value") =>
+        """
+        <DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+          <DescribeStacksResult>
+            <Stacks>
+              <member>
+                <Outputs>
+                  <member>
+                    <OutputKey>ParquetConversionTriggerName</OutputKey>
+                    <OutputValue></OutputValue>
+                  </member>
+                </Outputs>
+                <StackId>Stack Id</StackId>
+                <StackName>Stack Name</StackName>
+                <Description>Stack Description</Description>
+              </member>
+            </Stacks>
+          </DescribeStacksResult>
+        </DescribeStacksResponse>
+        """,
     )
 
     return responses[args[2]]
