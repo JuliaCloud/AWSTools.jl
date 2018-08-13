@@ -56,6 +56,12 @@ end
                     "TestBucketArn1" => "arn:aws:s3:::test-bucket-1",
                     "TestBucketArn2" => "arn:aws:s3:::test-bucket-2",
                 )
+
+                # Empty output values
+                outputs = stack_output("empty-value")
+                @test outputs == Dict(
+                    "ParquetConversionTriggerName" => nothing,
+                )
             end
         end
     end
