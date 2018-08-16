@@ -54,13 +54,12 @@ the corresponding s3 object's size and last modified datetime.
 """
 function S3Path(path::AbstractString; size::Integer=0, last_modified::DateTime=DateTime(0))
     # Don't split on the double `//` of "s3://bucket/key"
-    pieces = (split(path, r"(?<!/)/(?!/)")...,)
+    pieces = split(path, r"(?<!/)/(?!/)"; keepempty=false)
 
     # Retain ending `/` info to differentiate s3 folders from objects
-    if endswith(path, "/")
-        pieces = (pieces..., "")
-    end
-    return S3Path(pieces, path, size, last_modified)
+    endswith(path, "/") && push!(pieces, "")
+
+    return S3Path((pieces...,), path, size, last_modified)
 end
 
 """
@@ -75,11 +74,11 @@ function S3Path(
     size::Integer=0,
     last_modified::DateTime=DateTime(0)
 )
-    key_pieces = split(key, "/")
+    key_pieces = split(key, "/"; keepempty=false)
 
     # Retain ending `/` info to differentiate s3 folders from objects
     if isempty(key) || endswith(key, "/")
-        key_pieces = (key_pieces..., "")
+        push!(key_pieces, "")
     end
     pieces = ("s3://$bucket", key_pieces...)
 
@@ -113,7 +112,7 @@ function Base.join(root::S3Path, pieces::Union{AbstractPath, AbstractString}...)
     push!(all_parts, root_pieces[1])
 
     for p in Iterators.flatten((root_pieces[2:end], pieces))
-        append!(all_parts, split(p, "/"))
+        append!(all_parts, split(p, "/"; keepempty=false))
     end
 
     # Add trailing `/` to folder or bucket
