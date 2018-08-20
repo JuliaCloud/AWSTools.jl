@@ -158,11 +158,10 @@ function FilePaths.remove(
         elseif length(files) > 0
             error("S3 path $object is not empty. Use `recursive=true` to delete.")
         end
-
-    else
-        info(logger, "delete: $object")
-        @mock delete_object(config, Dict("Bucket" => object.bucket, "Key" => object.key))
     end
+
+    info(logger, "delete: $object")
+    @mock delete_object(config, Dict("Bucket" => object.bucket, "Key" => object.key))
 end
 
 function Base.copy(
