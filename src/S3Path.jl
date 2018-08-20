@@ -168,11 +168,17 @@ end
 function Base.copy(
     src::S3Path,
     dest::S3Path;
-    exist_ok::Bool=false,
+    exist_ok::Bool=true,
     overwrite::Bool=false,
     config::AWSConfig=default_aws_config()
 )
     if exists(src)
+
+        # If `dest` is a directory, copy `src` to that directory with the same name
+        if isdir(dest)
+            dest = join(dest, basename(src))
+        end
+
         already_exists = exists(dest)
 
         if already_exists && !exist_ok
@@ -196,16 +202,23 @@ function Base.copy(
     else
         error("$src is not a valid path")
     end
+    return String(dest)
 end
 
 function Base.copy(
     src::S3Path,
     dest::AbstractPath;
-    exist_ok=false,
+    exist_ok=true,
     overwrite=false,
     config::AWSConfig=default_aws_config()
 )
     if exists(src)
+
+        # If `dest` is a directory, download `src` to that directory with the same name
+        if isdir(dest)
+            dest = join(dest, basename(src))
+        end
+
         already_exists = exists(dest)
 
         if already_exists && !exist_ok
@@ -220,40 +233,24 @@ function Base.copy(
     else
         error("$src is not a valid path")
     end
-end
-
-function Base.download(src::S3Path; config::AWSConfig=default_aws_config())
-    download(src, joinpath(pwd(), basename(src)); config=config)
-end
-
-function Base.download(
-    src::S3Path,
-    dest::AbstractPath,
-    overwrite::Bool=false;
-    config::AWSConfig=default_aws_config()
-)
-    # AWSTools.S3 0.3 deprecation
-    if isdir(dest)
-        depwarn(
-            "`download(r::S3Results, dir::AbstractString)` is deprecated, " *
-            "use `download(src::S3Path, Path::AbstractString)` instead.",
-            :S3Results
-        )
-        dest = join(dest, basename(src))
-    end
-
-    copy(src, dest; exist_ok=true, overwrite=overwrite, config=config)
-    return dest
+    # Return filename that was downloaded as a String, needed for use with DataDeps
+    return String(dest)
 end
 
 function Base.copy(
     src::AbstractPath,
     dest::S3Path;
-    exist_ok=false,
+    exist_ok=true,
     overwrite=false,
     config::AWSConfig=default_aws_config()
 )
     if exists(src)
+
+        # If `dest` is a directory, upload `src` to that directory with the same name
+        if isdir(dest)
+            dest = join(dest, basename(src))
+        end
+
         already_exists = exists(dest)
 
         if already_exists && !exist_ok
@@ -268,7 +265,11 @@ function Base.copy(
     else
         error("$src is not a valid path")
     end
+    return String(dest)
 end
+
+Base.download(src::S3Path; kwargs...) = copy(src, AbstractPath(pwd()); kwargs...)
+Base.download(src::S3Path, dest::AbstractPath; kwargs...) = copy(src, dest; kwargs...)
 
 """
     upload(src::AbstractPath, dest::S3Path)
@@ -277,7 +278,7 @@ Uploads a local file to the s3 path specified by `dest`.
 """
 upload
 
-const upload = copy
+const upload = Base.copy
 
 # BEGIN AWSTools.S3 0.3 deprecations
 
