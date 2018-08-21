@@ -3,7 +3,7 @@ using FilePaths
 
 using AWSTools.CloudFormation: stack_output
 using AWSTools.S3: list_files, sync_key
-using AWSSDK.S3: put_object, create_bucket, delete_bucket
+using AWSSDK.S3: put_object, create_bucket
 
 setlevel!(getlogger(AWSTools.S3), "info")
 
