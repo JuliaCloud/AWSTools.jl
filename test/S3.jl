@@ -47,10 +47,16 @@ end
 
         mktempdir() do tmp_dir
             apply(patches) do
+                # Download to local file
                 s3_object = S3Path("bucket", "test_file")
-                localfile = Path((tmp_dir, "test_file"))
+                localfile = Path((tmp_dir, "local_file"))
                 download(s3_object, localfile)
-                @test readdir(tmp_dir) == ["test_file"]
+                @test readdir(tmp_dir) == ["local_file"]
+
+                # Download to directory
+                s3_object = S3Path("bucket", "test_file")
+                download(s3_object, AbstractPath(tmp_dir))
+                @test readdir(tmp_dir) == ["local_file", "test_file"]
             end
         end
     end
@@ -474,7 +480,7 @@ end
                 test_run_id = string(Base.Random.uuid4())
 
                 try
-                    @testset "Upload local file to s3" begin
+                    @testset "Upload to s3" begin
                         dest = AbstractPath(
                             "s3://$bucket/awstools/$test_run_id/folder3/testfile"
                         )
@@ -493,6 +499,46 @@ end
                             end
                         finally
                             remove(dest; recursive=true)
+                        end
+                    end
+
+                    @testset "Download from s3" begin
+                        src = AbstractPath(
+                            "s3://$bucket/awstools/$test_run_id/folder4/testfile"
+                        )
+
+                        try
+                            put_object(Dict(
+                                "Body" => "Remote content",
+                                "Bucket" => src.bucket,
+                                "Key" => src.key,
+                             ))
+
+                            @testset "Download to a directory" begin
+                                mktempdir() do dest_dir
+                                    dest = AbstractPath(dest_dir)
+
+                                    dest_file = download(src, dest)
+
+                                    @test list_files(dest) == [AbstractPath(dest_file)]
+                                    @test read(dest_file, String) == "Remote content"
+                                end
+                            end
+
+                            @testset "Download to a local file" begin
+                                mktemp() do dest_file, stream
+                                    dest = AbstractPath(dest_file)
+                                    close(stream)
+
+                                    dest_file = download(src, dest; overwrite=true)
+
+                                    @test dest_file == String(dest)
+                                    @test read(dest, String) == "Remote content"
+                                end
+                            end
+
+                        finally
+                            remove(src; recursive=true)
                         end
                     end
 
