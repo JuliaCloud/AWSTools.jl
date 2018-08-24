@@ -1,5 +1,5 @@
 using AWSSDK.S3: get_object, put_object, delete_object, copy_object
-using Base: @deprecate, depwarn
+using Base: @deprecate
 using Compat: split  # Requires Compat v1.0.0
 
 """
@@ -201,7 +201,7 @@ function Base.copy(
     else
         error("$src is not a valid path")
     end
-    return String(dest)
+    return dest
 end
 
 function Base.copy(
@@ -233,7 +233,7 @@ function Base.copy(
         error("$src is not a valid path")
     end
     # Return filename that was downloaded as a String, needed for use with DataDeps
-    return String(dest)
+    return dest
 end
 
 function Base.copy(
@@ -264,7 +264,7 @@ function Base.copy(
     else
         error("$src is not a valid path")
     end
-    return String(dest)
+    return dest
 end
 
 Base.download(src::S3Path; kwargs...) = copy(src, AbstractPath(pwd()); kwargs...)

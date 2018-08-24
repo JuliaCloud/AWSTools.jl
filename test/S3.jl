@@ -50,13 +50,15 @@ end
                 # Download to local file
                 s3_object = S3Path("bucket", "test_file")
                 localfile = Path((tmp_dir, "local_file"))
-                download(s3_object, localfile)
+                downloaded_file = download(s3_object, localfile)
                 @test readdir(tmp_dir) == ["local_file"]
+                @test isa(downloaded_file, AbstractPath)
 
                 # Download to directory
                 s3_object = S3Path("bucket", "test_file")
-                download(s3_object, AbstractPath(tmp_dir))
+                downloaded_file = download(s3_object, AbstractPath(tmp_dir))
                 @test readdir(tmp_dir) == ["local_file", "test_file"]
+                @test isa(downloaded_file, AbstractPath)
             end
         end
     end
@@ -492,7 +494,8 @@ end
 
                                 @test list_files(dest) == []
 
-                                upload(AbstractPath(src), dest)
+                                uploaded_file = upload(AbstractPath(src), dest)
+                                @test isa(uploaded_file, S3Path)
 
                                 @test list_files(dest) == [dest]
                                 @test read(dest, String) == "Local file src"
@@ -519,6 +522,7 @@ end
                                     dest = AbstractPath(dest_dir)
 
                                     dest_file = download(src, dest)
+                                    @test isa(dest_file, AbstractPath)
 
                                     @test list_files(dest) == [AbstractPath(dest_file)]
                                     @test read(dest_file, String) == "Remote content"
@@ -531,6 +535,7 @@ end
                                     close(stream)
 
                                     dest_file = download(src, dest; overwrite=true)
+                                    @test isa(dest_file, AbstractPath)
 
                                     @test dest_file == String(dest)
                                     @test read(dest, String) == "Remote content"
