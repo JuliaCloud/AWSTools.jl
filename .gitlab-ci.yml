@@ -136,10 +136,12 @@ stages:
     - develop
     - docs
     - tags  # special keyword for all tags
+  variables:
+    JULIA_VERSION: "0.6"
   before_script:
     - curl -s -o julia-ci https://gitlab.invenia.ca/infrastructure/gitlab-ci-helper/raw/master/julia-ci
     - chmod +x julia-ci
-    - ./julia-ci install release
+    - ./julia-ci install $JULIA_VERSION
   script:
     - source julia-ci export
     - julia --depwarn=no -e "Pkg.clone(pwd()); Pkg.build(\"$PKG_NAME\"); Pkg.add(\"Documenter\")"
