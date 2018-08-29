@@ -106,6 +106,16 @@ Base.isfile(object::S3Path) = !isdir(object)
 
 FilePaths.exists(object::S3Path) = length(list_files(object)) > 0 ? true : false
 
+function FilePaths.parents(path::S3Path)
+    if hasparent(path)
+        return map(1:length(parts(path))-1) do i
+            S3Path((parts(path)[1:i]..., ""))
+        end
+    else
+        error("$path has no parents")
+    end
+end
+
 function Base.join(root::S3Path, pieces::Union{AbstractPath, AbstractString}...)
     all_parts = String[]
     root_pieces = parts(root)
