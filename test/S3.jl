@@ -4,7 +4,7 @@ using FilePaths
 using AWSTools.CloudFormation: stack_output
 using AWSTools.S3: list_files, sync_key
 using AWSSDK.S3: put_object, create_bucket
-
+using Compat: @info, @warn
 using Compat.UUIDs
 
 setlevel!(getlogger(AWSTools.S3), "info")
@@ -470,12 +470,12 @@ end
 
         if "S3" in ONLINE
             @testset "Online" begin
-                info("Running ONLINE S3 tests")
+                @info "Running ONLINE S3 tests"
 
                 # Create bucket for tests
                 if isempty(AWS_BUCKET)
                     bucket = string("awstools-s3-test-temp-", uuid4())
-                    info("Creating S3 bucket $bucket")
+                    @info "Creating S3 bucket $bucket"
                     create_bucket(Dict("Bucket" => bucket))
                 else
                     bucket = AWS_BUCKET
@@ -735,13 +735,13 @@ end
 
                     # Delete bucket if it was explicitly created
                     if isempty(AWS_BUCKET)
-                        info("Deleting S3 bucket $bucket")
+                        @info "Deleting S3 bucket $bucket"
                         remove(S3Path("s3://$bucket"); recursive=true)
                     end
                 end
             end
         else
-            warn(
+            @warn (
                 "Skipping AWSTools.S3 ONLINE tests. Set `ENV[\"ONLINE\"] = \"S3\"` to run." *
                 "\nCan also optionally specify a test bucket name `ENV[\"AWS_BUCKET\"] = " *
                 "\"bucket-name\"`. \nIf `AWS_BUCKET` is not specified, a temporary bucket " *

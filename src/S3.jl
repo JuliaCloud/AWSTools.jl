@@ -8,7 +8,7 @@ using Mocking
 using XMLDict
 
 using AWSSDK.S3: list_objects_v2
-using Compat: @__MODULE__, Nothing
+using Compat: @__MODULE__, Nothing, findfirst
 
 export S3Path, sync, upload
 
@@ -266,17 +266,21 @@ For example if we did `sync("dir1", "dir2")`, a file located at "dir1/folder/myf
 have a sync_key of "folder/myfile" and would be synced to "dir2/folder/myfile".
 """
 function sync_key(src::AbstractPath, path::AbstractPath)
-    prefix = endswith(src, "/") ? src : "$src/"
+    prefix = String(src)
+    full_path = String(path)
 
-    if path == prefix
+    # Ensure prefix is a directory
+    endswith(prefix, "/") || (prefix = "$prefix/")
+
+    if full_path == prefix
         return ""
-    elseif !isempty(prefix) && startswith(path, prefix)
+    elseif !isempty(prefix) && startswith(full_path, prefix)
         # Get the indices of the directory prefix that are not part of the
         # comparison sync key
-        prefix_indices = search(path, prefix)[end]
-        return path[prefix_indices+1:end]  # Remove src directory prefix
+        prefix_indices = findfirst(prefix, full_path)[end]
+        return full_path[prefix_indices+1:end]  # Remove src directory prefix
     else
-        return path
+        return full_path
     end
 end
 
