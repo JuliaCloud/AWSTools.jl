@@ -33,7 +33,6 @@ stages:
   variables:
     JULIA_VERSION: "0.7"
     ONLINE: ""
-  allow_failure: true
   <<: *test_shell
 
 .test_shell_nightly: &test_shell_nightly

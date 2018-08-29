@@ -222,7 +222,7 @@ function list_files(path::S3Path; config::AWSConfig=default_aws_config())
             object = S3Path(
                 path.bucket,
                 item["Key"];
-                size=Meta.parse(item["Size"]),
+                size=parse(Int, item["Size"]),
                 last_modified=last_modified,
             )
             !isdir(object) && push!(all_objects, object)
