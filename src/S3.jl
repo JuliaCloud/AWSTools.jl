@@ -8,7 +8,7 @@ using Mocking
 using XMLDict
 
 using AWSSDK.S3: list_objects_v2
-using Compat: @__MODULE__
+using Compat: @__MODULE__, Nothing, findfirst, replace
 
 export S3Path, sync, upload
 
@@ -222,7 +222,7 @@ function list_files(path::S3Path; config::AWSConfig=default_aws_config())
             object = S3Path(
                 path.bucket,
                 item["Key"];
-                size=parse(item["Size"]),
+                size=parse(Int, item["Size"]),
                 last_modified=last_modified,
             )
             !isdir(object) && push!(all_objects, object)
@@ -266,17 +266,13 @@ For example if we did `sync("dir1", "dir2")`, a file located at "dir1/folder/myf
 have a sync_key of "folder/myfile" and would be synced to "dir2/folder/myfile".
 """
 function sync_key(src::AbstractPath, path::AbstractPath)
-    prefix = endswith(src, "/") ? src : "$src/"
-
-    if path == prefix
+    if path == src
         return ""
-    elseif !isempty(prefix) && startswith(path, prefix)
-        # Get the indices of the directory prefix that are not part of the
-        # comparison sync key
-        prefix_indices = search(path, prefix)[end]
-        return path[prefix_indices+1:end]  # Remove src directory prefix
+    elseif !isempty(src) && src in parents(path)
+        # Remove `src` dir prefix
+        return replace(path, Regex("^\\Q$(src)\\E/?") => s"")
     else
-        return path
+        return String(path)
     end
 end
 
@@ -286,7 +282,7 @@ end
 Returns true if the `src` file is newer or of different size than `dest`.
 """
 should_sync
-should_sync(src::AbstractPath, dest::Void) = true
+should_sync(src::AbstractPath, dest::Nothing) = true
 
 function should_sync(src::AbstractPath, dest::AbstractPath)
     same_size = size(src) == size(dest)

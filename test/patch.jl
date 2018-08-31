@@ -1,5 +1,6 @@
 using Base: CmdRedirect
 using AWSCore: AWSConfig
+using Compat.Base64
 
 get_caller_identity = @patch function get_caller_identity()
     account_id = join(rand(0:9, 12), "")
@@ -10,7 +11,7 @@ get_caller_identity = @patch function get_caller_identity()
     )
 end
 
-instance_availability_zone_patch = @patch function readstring(cmd::CmdRedirect)
+instance_availability_zone_patch = @patch function read(cmd::CmdRedirect, ::Type{String})
     url = cmd.cmd.exec[2]
     @test endswith(url, "availability-zone")
     return "us-east-1a"

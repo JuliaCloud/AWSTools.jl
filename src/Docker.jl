@@ -2,6 +2,7 @@ module Docker
 
 using AWSCore
 using ..ECR
+using Compat
 
 export login, pull, push, build
 
@@ -19,7 +20,7 @@ function login(
 end
 
 function login(docker_login::Cmd)
-    success(pipeline(docker_login, stdout=STDOUT, stderr=STDERR))
+    success(pipeline(docker_login, stdout=stdout, stderr=stderr))
 end
 
 """
