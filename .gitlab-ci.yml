@@ -20,8 +20,8 @@ stages:
     - source julia-ci export
     - ./julia-ci test
     - ./julia-ci coverage
-#  after_script:
-#    - ./julia-ci clean
+  after_script:
+    - ./julia-ci clean
 
 .test_shell_0_6: &test_shell_0_6
   variables:
