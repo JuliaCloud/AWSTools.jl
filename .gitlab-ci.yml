@@ -4,6 +4,10 @@ stages:
   - coverage
   - docs
 
+# Disable GitLab CI's default cache policy of "pull-push"
+# https://docs.gitlab.com/ee/ci/yaml/#cache-policy
+# https://docs.gitlab.com/ce/ci/caching/index.html#disabling-cache-on-specific-jobs
+cache: {}
 
 .test_shell: &test_shell
   artifacts:
