@@ -1,12 +1,19 @@
 module CloudFormation
 
+using Memento
 using Mocking
 using XMLDict
 
 using AWSCore
 using AWSSDK.CloudFormation: describe_stacks
-using Compat: AbstractDict
+using Compat: AbstractDict, @__MODULE__
 using DataStructures: OrderedDict
+
+const logger = getlogger(@__MODULE__)
+
+# Register the module level logger at runtime so that folks can access the logger via `getlogger(MyModule)`
+# NOTE: If this line is not included then the precompiled `MyModule.logger` won't be registered at runtime.
+__init__() = Memento.register(logger)
 
 export stack_description, stack_output
 
@@ -20,7 +27,29 @@ function stack_description(
     stack_name::AbstractString;
     config::AWSConfig=default_aws_config()
 )
-    response = xml_dict(@mock describe_stacks(config, Dict("StackName" => stack_name)))
+    function retry_cond(s, e)
+        if e isa AWSException
+            if 500 <= e.cause.status <= 504
+                debug(logger, "CloudFormation request encountered $(e.code); retrying")
+                return (s, true)
+            elseif e.cause.status == 429 || (e.cause.status == 400 && e.code == "Throttling")
+                debug(logger, "CloudFormation request encountered $(e.code); retrying")
+                return (s, true)
+            end
+        elseif e isa MbedException
+            debug(logger, "CloudFormation request encountered $e; retrying")
+            return (s, true)
+        end
+
+        return (s, false)
+    end
+
+    f = retry(check=retry_cond) do
+        @mock describe_stacks(config, Dict("StackName" => stack_name))
+    end
+
+    response = xml_dict(f())
+
     return response["DescribeStacksResponse"]["DescribeStacksResult"]["Stacks"]["member"]
 end
 
