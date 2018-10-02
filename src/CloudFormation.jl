@@ -8,6 +8,7 @@ using AWSCore
 using AWSSDK.CloudFormation: describe_stacks
 using Compat: AbstractDict, @__MODULE__
 using DataStructures: OrderedDict
+using MbedTLS: MbedException
 
 const logger = getlogger(@__MODULE__)
 
