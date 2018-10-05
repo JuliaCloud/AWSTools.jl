@@ -3,9 +3,8 @@ module CloudFormation
 using Memento
 using Mocking
 using XMLDict
-
 using AWSCore
-using AWSSDK.CloudFormation: describe_stacks
+using AWSCore.Services: cloudformation
 using Compat: AbstractDict, @__MODULE__
 using DataStructures: OrderedDict
 using MbedTLS: MbedException
@@ -17,6 +16,8 @@ const logger = getlogger(@__MODULE__)
 __init__() = Memento.register(logger)
 
 export stack_description, stack_output
+
+describe_stacks(config; kwargs...) = cloudformation(config, "DescribeStacks"; kwargs...)
 
 """
     stack_description(stack_name::AbstractString) -> AbstractDict
@@ -46,7 +47,7 @@ function stack_description(
     end
 
     f = retry(check=retry_cond) do
-        @mock describe_stacks(config, Dict("StackName" => stack_name))
+        @mock describe_stacks(config, StackName=stack_name)
     end
 
     response = xml_dict(f())

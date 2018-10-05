@@ -29,9 +29,9 @@ get_authorization_token_patch = @patch function get_authorization_token(config::
     )
 end
 
-describe_stacks_patch = @patch function describe_stacks(args...)
+describe_stacks_patch = @patch function describe_stacks(args...; kwargs...)
     responses = Dict(
-       Dict("StackName" => "stackname") =>
+       Dict(:StackName => "stackname") =>
         """
         <DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
           <DescribeStacksResult>
@@ -45,7 +45,7 @@ describe_stacks_patch = @patch function describe_stacks(args...)
           </DescribeStacksResult>
         </DescribeStacksResponse>
         """,
-        Dict("StackName" => "1-stack-output-stackname") =>
+        Dict(:StackName => "1-stack-output-stackname") =>
         """
         <DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
           <DescribeStacksResult>
@@ -65,7 +65,7 @@ describe_stacks_patch = @patch function describe_stacks(args...)
           </DescribeStacksResult>
         </DescribeStacksResponse>
         """,
-        Dict("StackName" => "multiple-stack-outputs-stackname") =>
+        Dict(:StackName => "multiple-stack-outputs-stackname") =>
         """
         <DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
           <DescribeStacksResult>
@@ -89,7 +89,7 @@ describe_stacks_patch = @patch function describe_stacks(args...)
           </DescribeStacksResult>
         </DescribeStacksResponse>
         """,
-        Dict("StackName" => "empty-value") =>
+        Dict(:StackName => "empty-value") =>
         """
         <DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
           <DescribeStacksResult>
@@ -111,90 +111,224 @@ describe_stacks_patch = @patch function describe_stacks(args...)
         """,
     )
 
-    return responses[args[2]]
+    return responses[Dict{Symbol, String}(kwargs)]
 end
 
 copy_object_patch = Dict(
     1 => (
-        @patch function copy_object(config::AWSConfig, args)
+        @patch function s3_copy(
+            config::AWSConfig,
+            bucket,
+            path;
+            to_bucket=999999,
+            to_path=999999,
+            kwargs...,
+        )
+            # gets around:
+            # https://github.com/invenia/Mocking.jl/issues/56
+            # https://github.com/invenia/Mocking.jl/issues/57
+            # https://github.com/invenia/Mocking.jl/issues/58
+            to_bucket = to_bucket === 999999 ? bucket : to_bucket
+            to_path = to_path === 999999 ? path : to_path
+
+            args = Dict{Symbol, String}(
+                :bucket => bucket,
+                :path => path,
+                :to_bucket => to_bucket,
+                :to_path => to_path,
+            )
+
             objects = [
-                Dict("Bucket" => "bucket-2", "Key" => "file1", "headers" => Dict(
-                    "x-amz-copy-source" => "/bucket-1/file1",
-                    "x-amz-metadata-directive" => "REPLACE",
-                )),
-                Dict("Bucket" => "bucket-2", "Key" => "file2", "headers" => Dict(
-                    "x-amz-copy-source" => "/bucket-1/file2",
-                    "x-amz-metadata-directive" => "REPLACE",
-                )),
-                Dict("Bucket" => "bucket-2", "Key" => "folder1/file3", "headers" => Dict(
-                    "x-amz-copy-source" => "/bucket-1/folder1/file3",
-                    "x-amz-metadata-directive" => "REPLACE",
-                )),
+                Dict(
+                    :to_bucket => "bucket-2",
+                    :to_path => "file1",
+                    :bucket => "bucket-1",
+                    :path => "file1",
+                ),
+                Dict(
+                    :to_bucket => "bucket-2",
+                    :to_path => "file2",
+                    :bucket => "bucket-1",
+                    :path => "file2",
+                ),
+                Dict(
+                    :to_bucket => "bucket-2",
+                    :to_path => "folder1/file3",
+                    :bucket => "bucket-1",
+                    :path => "folder1/file3",
+                ),
             ]
+
             @test args in objects
         end
     ),
     2 => (
-        @patch function copy_object(config::AWSConfig, args)
+        @patch function s3_copy(
+            config::AWSConfig,
+            bucket,
+            path;
+            to_bucket=999999,
+            to_path=999999,
+            kwargs...,
+        )
+            # gets around:
+            # https://github.com/invenia/Mocking.jl/issues/56
+            # https://github.com/invenia/Mocking.jl/issues/57
+            # https://github.com/invenia/Mocking.jl/issues/58
+            to_bucket = to_bucket === 999999 ? bucket : to_bucket
+            to_path = to_path === 999999 ? path : to_path
+
+            args = Dict{Symbol, String}(
+                :bucket => bucket,
+                :path => path,
+                :to_bucket => to_bucket,
+                :to_path => to_path,
+            )
+
             objects = [
-                Dict("Bucket" => "bucket-2", "Key" => "file", "headers" => Dict(
-                    "x-amz-copy-source" => "/bucket-1/dir1/file",
-                    "x-amz-metadata-directive" => "REPLACE",
-                )),
-                Dict("Bucket" => "bucket-2", "Key" => "folder1/file", "headers" => Dict(
-                    "x-amz-copy-source" => "/bucket-1/dir1/folder1/file",
-                    "x-amz-metadata-directive" => "REPLACE",
-                )),
+                Dict(
+                    :to_bucket => "bucket-2",
+                    :to_path => "file",
+                    :bucket => "bucket-1",
+                    :path => "dir1/file",
+                ),
+                Dict(
+                    :to_bucket => "bucket-2",
+                    :to_path => "folder1/file",
+                    :bucket => "bucket-1",
+                    :path => "dir1/folder1/file",
+                ),
             ]
+
             @test args in objects
         end
     ),
     3 => (
-        @patch function copy_object(config::AWSConfig, args)
+        @patch function s3_copy(
+            config::AWSConfig,
+            bucket,
+            path;
+            to_bucket=999999,
+            to_path=999999,
+            kwargs...,
+        )
+            # gets around:
+            # https://github.com/invenia/Mocking.jl/issues/56
+            # https://github.com/invenia/Mocking.jl/issues/57
+            # https://github.com/invenia/Mocking.jl/issues/58
+            to_bucket = to_bucket === 999999 ? bucket : to_bucket
+            to_path = to_path === 999999 ? path : to_path
+
+            args = Dict{Symbol, String}(
+                :bucket => bucket,
+                :path => path,
+                :to_bucket => to_bucket,
+                :to_path => to_path,
+            )
+
             objects = [
-                Dict("Bucket" => "bucket-1", "Key" => "dir2/file", "headers" => Dict(
-                    "x-amz-copy-source" => "/bucket-1/dir1/file",
-                    "x-amz-metadata-directive" => "REPLACE",
-                )),
-                Dict("Bucket" => "bucket-1", "Key" => "dir2/folder1/file", "headers" => Dict(
-                    "x-amz-copy-source" => "/bucket-1/dir1/folder1/file",
-                    "x-amz-metadata-directive" => "REPLACE",
-                )),
+                Dict(
+                    :to_bucket => "bucket-1",
+                    :to_path => "dir2/file",
+                    :bucket => "bucket-1",
+                    :path => "dir1/file",
+                ),
+                Dict(
+                    :to_bucket => "bucket-1",
+                    :to_path => "dir2/folder1/file",
+                    :bucket => "bucket-1",
+                    :path => "dir1/folder1/file",
+                ),
             ]
+
             @test args in objects
         end
     ),
     4 => (
-        @patch function copy_object(config::AWSConfig, args)
+        @patch function s3_copy(
+            config::AWSConfig,
+            bucket,
+            path;
+            to_bucket=999999,
+            to_path=999999,
+            kwargs...,
+        )
+            # gets around:
+            # https://github.com/invenia/Mocking.jl/issues/56
+            # https://github.com/invenia/Mocking.jl/issues/57
+            # https://github.com/invenia/Mocking.jl/issues/58
+            to_bucket = to_bucket === 999999 ? bucket : to_bucket
+            to_path = to_path === 999999 ? path : to_path
+
+            args = Dict{Symbol, String}(
+                :bucket => bucket,
+                :path => path,
+                :to_bucket => to_bucket,
+                :to_path => to_path,
+            )
+
             objects = [
-                Dict("Bucket" => "bucket-2", "Key" => "dir2/file", "headers" => Dict(
-                    "x-amz-copy-source" => "/bucket-1/dir1/file",
-                    "x-amz-metadata-directive" => "REPLACE",
-                )),
-                Dict("Bucket" => "bucket-2", "Key" => "dir2/folder1/file", "headers" => Dict(
-                    "x-amz-copy-source" => "/bucket-1/dir1/folder1/file",
-                    "x-amz-metadata-directive" => "REPLACE",
-                )),
+                Dict(
+                    :to_bucket => "bucket-2",
+                    :to_path => "dir2/file",
+                    :bucket => "bucket-1",
+                    :path => "dir1/file",
+                ),
+                Dict(
+                    :to_bucket => "bucket-2",
+                    :to_path => "dir2/folder1/file",
+                    :bucket => "bucket-1",
+                    :path => "dir1/folder1/file",
+                ),
             ]
+
             @test args in objects
         end
     ),
     5 => (
-        @patch function copy_object(config::AWSConfig, args)
+        @patch function s3_copy(
+            config::AWSConfig,
+            bucket,
+            path;
+            to_bucket=999999,
+            to_path=999999,
+            kwargs...,
+        )
+            # gets around:
+            # https://github.com/invenia/Mocking.jl/issues/56
+            # https://github.com/invenia/Mocking.jl/issues/57
+            # https://github.com/invenia/Mocking.jl/issues/58
+            to_bucket = to_bucket === 999999 ? bucket : to_bucket
+            to_path = to_path === 999999 ? path : to_path
+
+            args = Dict{Symbol, String}(
+                :bucket => bucket,
+                :path => path,
+                :to_bucket => to_bucket,
+                :to_path => to_path,
+            )
+
             objects = [
-                Dict("Bucket" => "bucket-2", "Key" => "dir2/file1", "headers" => Dict(
-                    "x-amz-copy-source" => "/bucket-1/file1",
-                    "x-amz-metadata-directive" => "REPLACE",
-                )),
-                Dict("Bucket" => "bucket-2", "Key" => "dir2/file2", "headers" => Dict(
-                    "x-amz-copy-source" => "/bucket-1/file2",
-                    "x-amz-metadata-directive" => "REPLACE",
-                )),
-                Dict("Bucket" => "bucket-2", "Key" => "dir2/folder1/file3", "headers" => Dict(
-                    "x-amz-copy-source" => "/bucket-1/folder1/file3",
-                    "x-amz-metadata-directive" => "REPLACE",
-                )),
+                Dict(
+                    :to_bucket => "bucket-2",
+                    :to_path => "dir2/file1",
+                    :bucket => "bucket-1",
+                    :path => "file1",
+                ),
+                Dict(
+                    :to_bucket => "bucket-2",
+                    :to_path => "dir2/file2",
+                    :bucket => "bucket-1",
+                    :path => "file2",
+                ),
+                Dict(
+                    :to_bucket => "bucket-2",
+                    :to_path => "dir2/folder1/file3",
+                    :bucket => "bucket-1",
+                    :path => "folder1/file3",
+                ),
             ]
+
             @test args in objects
         end
     ),
@@ -202,11 +336,20 @@ copy_object_patch = Dict(
 
 put_object_patch = Dict(
     6 => (
-        @patch function put_object(config::AWSConfig, args)
+        @patch function s3_put(
+            config::AWSConfig,
+            bucket,
+            path,
+            data::Union{String, Vector{UInt8}};
+            kwargs...,
+        )
+            args = Dict{Symbol, String}(:bucket => bucket, :path => path, :data => data)
+
             objects = [
-                Dict("Bucket" => "bucket-1", "Body" => "Hello World!", "Key" =>"file"),
-                Dict("Bucket" => "bucket-1", "Body" => "", "Key" =>"folder/file"),
+                Dict(:bucket => "bucket-1", :path => "file", :data => "Hello World!"),
+                Dict(:bucket => "bucket-1", :path => "folder/file", :data => ""),
             ]
+
             @test args in objects
         end
     ),
@@ -214,12 +357,15 @@ put_object_patch = Dict(
 
 get_object_patch = Dict(
     7 => (
-        @patch function get_object(config::AWSConfig, args)
+        @patch function s3_get(config::AWSConfig, bucket, path; kwargs...)
+            args = Dict{Symbol, String}(:bucket => bucket, :path => path)
+
             objects = Dict(
-                Dict("Bucket" => "bucket-1", "Key" => "file1") => "Hello World!",
-                Dict("Bucket" => "bucket-1", "Key" => "file2") => "",
-                Dict("Bucket" => "bucket-1", "Key" => "folder1/file3") => "Test",
+                Dict(:bucket => "bucket-1", :path => "file1") => "Hello World!",
+                Dict(:bucket => "bucket-1", :path => "file2") => "",
+                Dict(:bucket => "bucket-1", :path => "folder1/file3") => "Test",
             )
+
             return objects[args]
         end
     ),
@@ -227,50 +373,60 @@ get_object_patch = Dict(
 
 delete_object_patch = Dict(
     1 => (
-        @patch function delete_object(config::AWSConfig, args)
-            objects = []
-            @test args in objects
+        @patch function s3_delete(config::AWSConfig, bucket, path; kwargs...)
+            @test false
         end
     ),
     2 => (
-        @patch function delete_object(config::AWSConfig, args)
-            objects = []
-            @test args in objects
+        @patch function s3_delete(config::AWSConfig, bucket, path; kwargs...)
+            @test false
         end
     ),
     3 => (
-        @patch function delete_object(config::AWSConfig, args)
+        @patch function s3_delete(config::AWSConfig, bucket, path; kwargs...)
+            args = Dict{Symbol, String}(:bucket => bucket, :path => path)
+
             objects = [
-                Dict("Bucket" => "bucket-1", "Key" =>"dir2/file2"),
-                Dict("Bucket" => "bucket-1", "Key" =>"dir2/folder2/file2"),
+                Dict(:bucket => "bucket-1", :path =>"dir2/file2"),
+                Dict(:bucket => "bucket-1", :path =>"dir2/folder2/file2"),
             ]
+
             @test args in objects
         end
     ),
     4 => (
-        @patch function delete_object(config::AWSConfig, args)
+        @patch function s3_delete(config::AWSConfig, bucket, path; kwargs...)
+            args = Dict{Symbol, String}(:bucket => bucket, :path => path)
+
             objects = [
-                Dict("Bucket" => "bucket-2", "Key" =>"dir2/file2"),
-                Dict("Bucket" => "bucket-2", "Key" =>"dir2/folder2/file2"),
+                Dict(:bucket => "bucket-2", :path =>"dir2/file2"),
+                Dict(:bucket => "bucket-2", :path =>"dir2/folder2/file2"),
             ]
+
             @test args in objects
         end
     ),
     5 => (
-        @patch function delete_object(config::AWSConfig, args)
+        @patch function s3_delete(config::AWSConfig, bucket, path; kwargs...)
+            args = Dict{Symbol, String}(:bucket => bucket, :path => path)
+
             objects = [
-                Dict("Bucket" => "bucket-2", "Key" =>"dir2/folder2/file3"),
+                Dict(:bucket => "bucket-2", :path =>"dir2/folder2/file3"),
             ]
+
             @test args in objects
         end
     ),
     6 => (
-        @patch function delete_object(config::AWSConfig, args)
+        @patch function s3_delete(config::AWSConfig, bucket, path; kwargs...)
+            args = Dict{Symbol, String}(:bucket => bucket, :path => path)
+
             objects = [
-                Dict("Bucket" => "bucket-1", "Key" =>"file1"),
-                Dict("Bucket" => "bucket-1", "Key" =>"file2"),
-                Dict("Bucket" => "bucket-1", "Key" =>"folder1/file3"),
+                Dict(:bucket => "bucket-1", :path =>"file1"),
+                Dict(:bucket => "bucket-1", :path =>"file2"),
+                Dict(:bucket => "bucket-1", :path =>"folder1/file3"),
             ]
+
             @test args in objects
         end
     ),
@@ -278,812 +434,388 @@ delete_object_patch = Dict(
 
 list_S3_objects_patch = Dict(
     1 => (
-        @patch function list_objects_v2(config::AWSConfig, args)
+        @patch function _s3_list_objects(config::AWSConfig, bucket, prefix)
+            args = Dict{Symbol, String}(:bucket => bucket, :prefix => prefix)
+
             results = Dict(
-                Dict("Bucket" => "bucket-1", "prefix" => "") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name></Name>
-                    <Prefix/>
-                    <KeyCount>3</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                    <Contents>
-                      <Key>file1</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>12</Size>
-                    </Contents>
-                    <Contents>
-                      <Key>file2</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>0</Size>
-                    </Contents>
-                    <Contents>
-                      <Key>folder1/file3</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>4</Size>
-                    </Contents>
-                </ListBucketResult>
-                """,
-                Dict("Bucket" => "bucket-1", "prefix" => "folder1/file3") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name>bucket-1</Name>
-                    <Prefix>folder1/file3</Prefix>
-                    <KeyCount>1</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                    <Contents>
-                      <Key>folder1/file3</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>4</Size>
-                    </Contents>
-                </ListBucketResult>
-                """,
-                Dict("Bucket" => "bucket-1", "prefix" => "file1") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name>bucket-1</Name>
-                    <Prefix>file1</Prefix>
-                    <KeyCount>1</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                    <Contents>
-                      <Key>file1</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>12</Size>
-                    </Contents>
-                </ListBucketResult>
-                """,
-                Dict("Bucket" => "bucket-1", "prefix" => "file2") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name>bucket-1</Name>
-                    <Prefix>file2</Prefix>
-                    <KeyCount>1</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                    <Contents>
-                      <Key>file2</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>0</Size>
-                    </Contents>
-                </ListBucketResult>
-                """,
-                Dict("Bucket" => "bucket-2", "prefix" => "") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name>bucket-2</Name>
-                    <Prefix/>
-                    <KeyCount>0</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                </ListBucketResult>
-                """,
-                Dict("Bucket" => "bucket-2", "prefix" => "folder1/file3") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name>bucket-2</Name>
-                    <Prefix>folder1/file3</Prefix>
-                    <KeyCount>0</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                </ListBucketResult>
-                """,
-                Dict("Bucket" => "bucket-2", "prefix" => "file1") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name>bucket-2</Name>
-                    <Prefix>file1</Prefix>
-                    <KeyCount>0</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                </ListBucketResult>
-                """,
-                Dict("Bucket" => "bucket-2", "prefix" => "file2") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name>bucket-2</Name>
-                    <Prefix>file2</Prefix>
-                    <KeyCount>0</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                </ListBucketResult>
-                """,
+                Dict(:bucket => "bucket-1", :prefix => "") => Dict{String, String}[
+                    Dict(
+                        "Key" => "file1",
+                        "Size" => "12",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                    Dict(
+                        "Key" => "file2",
+                        "Size" => "0",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                    Dict(
+                        "Key" => "folder1/file3",
+                        "Size" => "4",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                ],
+                Dict(:bucket => "bucket-1", :prefix => "folder1/file3") => Dict{String, String}[
+                    Dict(
+                        "Key" => "folder1/file3",
+                        "Size" => "4",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                ],
+                Dict(:bucket => "bucket-1", :prefix => "file2") => Dict{String, String}[
+                    Dict(
+                        "Key" => "file2",
+                        "Size" => "0",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                ],
+                Dict(:bucket => "bucket-2", :prefix => "file1") => Dict{String, String}[],
+                Dict(:bucket => "bucket-2", :prefix => "") => Dict{String, String}[],
+                Dict(:bucket => "bucket-1", :prefix => "file1") => Dict{String, String}[
+                    Dict(
+                        "Key" => "file1",
+                        "Size" => "12",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                ],
+                Dict(:bucket => "bucket-2", :prefix => "file2") => Dict{String, String}[],
+                Dict(:bucket => "bucket-2", :prefix => "folder1/file3") => Dict{String, String}[],
             )
+
             return results[args]
         end
     ),
     2 => (
-        @patch function list_objects_v2(config::AWSConfig, args)
+        @patch function _s3_list_objects(config::AWSConfig, bucket, prefix)
+            args = Dict{Symbol, String}(:bucket => bucket, :prefix => prefix)
+
             results = Dict(
-                Dict("Bucket" => "bucket-1", "prefix" => "dir1/") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name></Name>
-                    <Prefix>dir1/</Prefix>
-                    <KeyCount>2</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                    <Contents>
-                      <Key>dir1/file</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>12</Size>
-                    </Contents>
-                    <Contents>
-                      <Key>dir1/folder1/file</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>4</Size>
-                    </Contents>
-                </ListBucketResult>
-                """,
-                Dict("Bucket" => "bucket-1", "prefix" => "dir1/folder1/file") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name></Name>
-                    <Prefix>dir1/folder1/file</Prefix>
-                    <KeyCount>1</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                    <Contents>
-                      <Key>dir1/folder1/file</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>4</Size>
-                    </Contents>
-                </ListBucketResult>
-                """,
-                Dict("Bucket" => "bucket-1", "prefix" => "dir1/file") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name></Name>
-                    <Prefix>dir1/file</Prefix>
-                    <KeyCount>1</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                    <Contents>
-                      <Key>dir1/file</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>12</Size>
-                    </Contents>
-                </ListBucketResult>
-                """,
-                Dict("Bucket" => "bucket-2", "prefix" => "") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name>bucket-2</Name>
-                    <Prefix/>
-                    <KeyCount>0</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                </ListBucketResult>
-                """,
-                Dict("Bucket" => "bucket-2", "prefix" => "folder1/file") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name>bucket-2</Name>
-                    <Prefix>folder1/file</Prefix>
-                    <KeyCount>0</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                </ListBucketResult>
-                """,
-                Dict("Bucket" => "bucket-2", "prefix" => "file") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name>bucket-2</Name>
-                    <Prefix>file</Prefix>
-                    <KeyCount>0</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                </ListBucketResult>
-                """,
+                Dict(:bucket => "bucket-1", :prefix => "dir1/") => Dict{String, String}[
+                    Dict(
+                        "Key" => "dir1/file",
+                        "Size" => "12",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                    Dict(
+                        "Key" => "dir1/folder1/file",
+                        "Size" => "4",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                ],
+                Dict(:bucket => "bucket-2", :prefix => "") => Dict{String, String}[],
+                Dict(:bucket => "bucket-2", :prefix => "file") => Dict{String, String}[],
+                Dict(:bucket => "bucket-1", :prefix => "dir1/file") => Dict{String, String}[
+                    Dict(
+                        "Key" => "dir1/file",
+                        "Size" => "12",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                ],
+                Dict(:bucket => "bucket-2", :prefix => "folder1/file") => Dict{String, String}[],
+                Dict(:bucket => "bucket-1", :prefix => "dir1/folder1/file") => Dict{String, String}[
+                    Dict(
+                        "Key" => "dir1/folder1/file",
+                        "Size" => "4",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                ],
             )
+
             return results[args]
         end
     ),
     3 => (
-        @patch function list_objects_v2(config::AWSConfig, args)
+        @patch function _s3_list_objects(config::AWSConfig, bucket, prefix)
+            args = Dict{Symbol, String}(:bucket => bucket, :prefix => prefix)
+
             results = Dict(
-                Dict("Bucket" => "bucket-1", "prefix" => "dir1/") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name></Name>
-                    <Prefix>dir1/</Prefix>
-                    <KeyCount>2</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                    <Contents>
-                      <Key>dir1/file</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>12</Size>
-                    </Contents>
-                    <Contents>
-                      <Key>dir1/folder1/file</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>4</Size>
-                    </Contents>
-                </ListBucketResult>
-                """,
-                Dict("Bucket" => "bucket-1", "prefix" => "dir1/folder1/file") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name></Name>
-                    <Prefix>dir1/folder1/file</Prefix>
-                    <KeyCount>1</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                    <Contents>
-                      <Key>dir1/folder1/file</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>4</Size>
-                    </Contents>
-                </ListBucketResult>
-                """,
-                Dict("Bucket" => "bucket-1", "prefix" => "dir1/file") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name></Name>
-                    <Prefix>dir1/file</Prefix>
-                    <KeyCount>1</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                    <Contents>
-                      <Key>dir1/file</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>12</Size>
-                    </Contents>
-                </ListBucketResult>
-                """,
-                Dict("Bucket" => "bucket-1", "prefix" => "dir2/") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name></Name>
-                    <Prefix>dir2/</Prefix>
-                    <KeyCount>1</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                    <Contents>
-                      <Key>dir2/folder2/file2</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>4</Size>
-                    </Contents>
-                </ListBucketResult>
-                """,
-                Dict("Bucket" => "bucket-1", "prefix" => "dir2/folder1/file") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name>bucket-2</Name>
-                    <Prefix>dir2/folder1/file</Prefix>
-                    <KeyCount>0</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                </ListBucketResult>
-                """,
-                Dict("Bucket" => "bucket-1", "prefix" => "dir2/file") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name>bucket-2</Name>
-                    <Prefix>dir2/file</Prefix>
-                    <KeyCount>0</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                </ListBucketResult>
-                """,
-                Dict("Bucket" => "bucket-1", "prefix" => "dir2/folder2/file2") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name>bucket-2</Name>
-                    <Prefix>dir2/folder2/file2</Prefix>
-                    <KeyCount>1</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                    <Contents>
-                      <Key>dir2/folder2/file2</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>4</Size>
-                    </Contents>
-                </ListBucketResult>
-                """,
+                Dict(:bucket => "bucket-1", :prefix => "dir1/folder1/file") => Dict{String, String}[
+                    Dict(
+                        "Key" => "dir1/folder1/file",
+                        "Size" => "4",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                ],
+                Dict(:bucket => "bucket-1", :prefix => "dir1/") => Dict{String, String}[
+                    Dict(
+                        "Key" => "dir1/file",
+                        "Size" => "12",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                    Dict(
+                        "Key" => "dir1/folder1/file",
+                        "Size" => "4",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                ],
+                Dict(:bucket => "bucket-1", :prefix => "dir2/folder2/file2") => Dict{String, String}[
+                    Dict(
+                        "Key" => "dir2/folder2/file2",
+                        "Size" => "4",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                ],
+                Dict(:bucket => "bucket-1", :prefix => "dir2/folder1/file") => Dict{String, String}[],
+                Dict(:bucket => "bucket-1", :prefix => "dir1/file") => Dict{String, String}[
+                    Dict(
+                        "Key" => "dir1/file",
+                        "Size" => "12",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                ],
+                Dict(:bucket => "bucket-1", :prefix => "dir2/") => Dict{String, String}[
+                    Dict(
+                        "Key" => "dir2/folder2/file2",
+                        "Size" => "4",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                ],
+                Dict(:bucket => "bucket-1", :prefix => "dir2/file") => Dict{String, String}[],
             )
+
             return results[args]
         end
     ),
     4 => (
-        @patch function list_objects_v2(config::AWSConfig, args)
+        @patch function _s3_list_objects(config::AWSConfig, bucket, prefix)
+            args = Dict{Symbol, String}(:bucket => bucket, :prefix => prefix)
+
             results = Dict(
-                Dict("Bucket" => "bucket-1", "prefix" => "dir1/") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name></Name>
-                    <Prefix>dir1/</Prefix>
-                    <KeyCount>2</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                    <Contents>
-                      <Key>dir1/file</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>12</Size>
-                    </Contents>
-                    <Contents>
-                      <Key>dir1/folder1/file</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>4</Size>
-                    </Contents>
-                </ListBucketResult>
-                """,
-                Dict("Bucket" => "bucket-1", "prefix" => "dir1/folder1/file") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name></Name>
-                    <Prefix>dir1/folder1/file</Prefix>
-                    <KeyCount>1</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                    <Contents>
-                      <Key>dir1/folder1/file</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>4</Size>
-                    </Contents>
-                </ListBucketResult>
-                """,
-                Dict("Bucket" => "bucket-1", "prefix" => "dir1/file") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name></Name>
-                    <Prefix>dir1/file</Prefix>
-                    <KeyCount>1</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                    <Contents>
-                      <Key>dir1/file</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>12</Size>
-                    </Contents>
-                </ListBucketResult>
-                """,
-                Dict("Bucket" => "bucket-2", "prefix" => "dir2/") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name></Name>
-                    <Prefix>dir2/</Prefix>
-                    <KeyCount>1</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                    <Contents>
-                      <Key>dir2/file2</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>12</Size>
-                    </Contents>
-                </ListBucketResult>
-                """,
-                Dict("Bucket" => "bucket-2", "prefix" => "dir2/folder1/file") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name>bucket-2</Name>
-                    <Prefix>dir2/folder1/file</Prefix>
-                    <KeyCount>0</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                </ListBucketResult>
-                """,
-                Dict("Bucket" => "bucket-2", "prefix" => "dir2/file") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name>bucket-2</Name>
-                    <Prefix>dir2/file</Prefix>
-                    <KeyCount>0</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                </ListBucketResult>
-                """,
-                Dict("Bucket" => "bucket-2", "prefix" => "dir2/file2") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name>bucket-2</Name>
-                    <Prefix>dir2/file2/file</Prefix>
-                    <KeyCount>1</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                    <Contents>
-                      <Key>dir2/file2</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>12</Size>
-                    </Contents>
-                </ListBucketResult>
-                """,
+                Dict(:bucket => "bucket-1", :prefix => "dir1/") => Dict{String, String}[
+                    Dict(
+                        "Key" => "dir1/file",
+                        "Size" => "12",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                    Dict(
+                        "Key" => "dir1/folder1/file",
+                        "Size" => "4",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                ],
+                Dict(:bucket => "bucket-2", :prefix => "dir2/file") => Dict{String, String}[],
+                Dict(:bucket => "bucket-2", :prefix => "dir2/folder1/file") => Dict{String, String}[],
+                Dict(:bucket => "bucket-2", :prefix => "dir2/") => Dict{String, String}[
+                    Dict(
+                        "Key" => "dir2/file2",
+                        "Size" => "12",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                ],
+                Dict(:bucket => "bucket-1", :prefix => "dir1/file") => Dict{String, String}[
+                    Dict(
+                        "Key" => "dir1/file",
+                        "Size" => "12",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                ],
+                Dict(:bucket => "bucket-2", :prefix => "dir2/file2") => Dict{String, String}[
+                    Dict(
+                        "Key" => "dir2/file2",
+                        "Size" => "12",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                ],
+                Dict(:bucket => "bucket-1", :prefix => "dir1/folder1/file") => Dict{String, String}[
+                    Dict(
+                        "Key" => "dir1/folder1/file",
+                        "Size" => "4",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                ],
             )
 
             return results[args]
         end
     ),
     5 => (
-        @patch function list_objects_v2(config::AWSConfig, args)
+        @patch function _s3_list_objects(config::AWSConfig, bucket, prefix)
+            args = Dict{Symbol, String}(:bucket => bucket, :prefix => prefix)
+
             results = Dict(
-                Dict("Bucket" => "bucket-1", "prefix" => "") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name></Name>
-                    <Prefix/>
-                    <KeyCount>3</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                    <Contents>
-                      <Key>file1</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>12</Size>
-                    </Contents>
-                    <Contents>
-                      <Key>file2</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>0</Size>
-                    </Contents>
-                    <Contents>
-                      <Key>folder1/file3</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>4</Size>
-                    </Contents>
-                </ListBucketResult>
-                """,
-                Dict("Bucket" => "bucket-1", "prefix" => "folder1/file3") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name></Name>
-                    <Prefix>folder1/file3</Prefix>
-                    <KeyCount>1</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                    <Contents>
-                      <Key>folder1/file3</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>4</Size>
-                    </Contents>
-                </ListBucketResult>
-                """,
-                Dict("Bucket" => "bucket-1", "prefix" => "file1") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name></Name>
-                    <Prefix>file1</Prefix>
-                    <KeyCount>1</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                    <Contents>
-                      <Key>file1</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>12</Size>
-                    </Contents>
-                </ListBucketResult>
-                """,
-                Dict("Bucket" => "bucket-1", "prefix" => "file2") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name></Name>
-                    <Prefix>file2</Prefix>
-                    <KeyCount>1</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                    <Contents>
-                      <Key>file2</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>0</Size>
-                    </Contents>
-                </ListBucketResult>
-                """,
-                Dict("Bucket" => "bucket-2", "prefix" => "dir2/") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name></Name>
-                    <Prefix>dir2/</Prefix>
-                    <KeyCount>2</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                    <Contents>
-                      <Key>dir2/file2</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>12</Size>
-                    </Contents>
-                    <Contents>
-                      <Key>dir2/folder2/file3</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>4</Size>
-                    </Contents>
-                </ListBucketResult>
-                """,
-                Dict("Bucket" => "bucket-2", "prefix" => "dir2/folder1/file3") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name>bucket-2</Name>
-                    <Prefix>dir2/folder1/file3</Prefix>
-                    <KeyCount>0</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                </ListBucketResult>
-                """,
-                Dict("Bucket" => "bucket-2", "prefix" => "dir2/file1") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name>bucket-2</Name>
-                    <Prefix>dir2/file1</Prefix>
-                    <KeyCount>0</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                </ListBucketResult>
-                """,
-                Dict("Bucket" => "bucket-2", "prefix" => "dir2/file2") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name>bucket-2</Name>
-                    <Prefix>dir2/file2</Prefix>
-                    <KeyCount>1</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                    <Contents>
-                      <Key>dir2/file2</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>12</Size>
-                    </Contents>
-                </ListBucketResult>
-                """,
-                Dict("Bucket" => "bucket-2", "prefix" => "dir2/folder2/file3") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name>bucket-2</Name>
-                    <Prefix>dir2/folder2/file3</Prefix>
-                    <KeyCount>1</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                    <Contents>
-                      <Key>dir2/folder2/file3</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>4</Size>
-                    </Contents>
-                </ListBucketResult>
-                """,
+                Dict(:bucket => "bucket-1", :prefix => "") => Dict{String, String}[
+                    Dict(
+                        "Key" => "file1",
+                        "Size" => "12",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                    Dict(
+                        "Key" => "file2",
+                        "Size" => "0",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                    Dict(
+                        "Key" => "folder1/file3",
+                        "Size" => "4",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                ],
+                Dict(:bucket => "bucket-1", :prefix => "folder1/file3") => Dict{String, String}[
+                    Dict(
+                        "Key" => "folder1/file3",
+                        "Size" => "4",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                ],
+                Dict(:bucket => "bucket-1", :prefix => "file2") => Dict{String, String}[
+                    Dict(
+                        "Key" => "file2",
+                        "Size" => "0",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                ],
+                Dict(:bucket => "bucket-2", :prefix => "dir2/folder2/file3") => Dict{String, String}[
+                    Dict(
+                        "Key" => "dir2/folder2/file3",
+                        "Size" => "4",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                ],
+                Dict(:bucket => "bucket-1", :prefix => "file1") => Dict{String, String}[
+                    Dict(
+                        "Key" => "file1",
+                        "Size" => "12",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                ],
+                Dict(:bucket => "bucket-2", :prefix => "dir2/file1") => Dict{String, String}[],
+                Dict(:bucket => "bucket-2", :prefix => "dir2/") => Dict{String, String}[
+                    Dict(
+                        "Key" => "dir2/file2",
+                        "Size" => "12",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                    Dict(
+                        "Key" => "dir2/folder2/file3",
+                        "Size" => "4",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                ],
+                Dict(:bucket => "bucket-2", :prefix => "dir2/folder1/file3") => Dict{String, String}[],
+                Dict(:bucket => "bucket-2", :prefix => "dir2/file2") => Dict{String, String}[
+                    Dict(
+                        "Key" => "dir2/file2",
+                        "Size" => "12",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                ],
             )
+
             return results[args]
         end
     ),
     6 => (
-        @patch function list_objects_v2(config::AWSConfig, args)
+        @patch function _s3_list_objects(config::AWSConfig, bucket, prefix)
+            args = Dict{Symbol, String}(:bucket => bucket, :prefix => prefix)
+
             results = Dict(
-                Dict("Bucket" => "bucket-1", "prefix" => "folder/file") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name></Name>
-                    <Prefix>folder/file</Prefix>
-                    <KeyCount>0</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                </ListBucketResult>
-                """,
-                Dict("Bucket" => "bucket-1", "prefix" => "file") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name></Name>
-                    <Prefix>file</Prefix>
-                    <KeyCount>0</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                </ListBucketResult>
-                """,
-                Dict("Bucket" => "bucket-1", "prefix" => "") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name></Name>
-                    <Prefix/>
-                    <KeyCount>3</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                    <Contents>
-                      <Key>file1</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>12</Size>
-                    </Contents>
-                    <Contents>
-                      <Key>file2</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>0</Size>
-                    </Contents>
-                    <Contents>
-                      <Key>folder1/file3</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>4</Size>
-                    </Contents>
-                </ListBucketResult>
-                """,
-                Dict("Bucket" => "bucket-1", "prefix" => "folder1/file3") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name></Name>
-                    <Prefix>folder1/file3</Prefix>
-                    <KeyCount>1</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                    <Contents>
-                      <Key>folder1/file3</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>4</Size>
-                    </Contents>
-                </ListBucketResult>
-                """,
-                Dict("Bucket" => "bucket-1", "prefix" => "file1") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name></Name>
-                    <Prefix>file1</Prefix>
-                    <KeyCount>1</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                    <Contents>
-                      <Key>file1</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>12</Size>
-                    </Contents>
-                </ListBucketResult>
-                """,
-                Dict("Bucket" => "bucket-1", "prefix" => "file2") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name></Name>
-                    <Prefix>file2</Prefix>
-                    <KeyCount>1</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                    <Contents>
-                      <Key>file2</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>0</Size>
-                    </Contents>
-                </ListBucketResult>
-                """,
+                Dict(:bucket => "bucket-1", :prefix => "") => Dict{String, String}[
+                    Dict(
+                        "Key" => "file1",
+                        "Size" => "12",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                    Dict(
+                        "Key" => "file2",
+                        "Size" => "0",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                    Dict(
+                        "Key" => "folder1/file3",
+                        "Size" => "4",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                ],
+                Dict(:bucket => "bucket-1", :prefix => "folder1/file3") => Dict{String, String}[
+                    Dict(
+                        "Key" => "folder1/file3",
+                        "Size" => "4",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                ],
+                Dict(:bucket => "bucket-1", :prefix => "file2") => Dict{String, String}[
+                    Dict(
+                        "Key" => "file2",
+                        "Size" => "0",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                ],
+                Dict(:bucket => "bucket-1", :prefix => "file") => Dict{String, String}[],
+                Dict(:bucket => "bucket-1", :prefix => "file1") => Dict{String, String}[
+                    Dict(
+                        "Key" => "file1",
+                        "Size" => "12",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                ],
+                Dict(:bucket => "bucket-1", :prefix => "folder/file") => Dict{String, String}[],
             )
+
             return results[args]
         end
     ),
     7 => (
-        @patch function list_objects_v2(config::AWSConfig, args)
+        @patch function _s3_list_objects(config::AWSConfig, bucket, prefix)
+            args = Dict{Symbol, String}(:bucket => bucket, :prefix => prefix)
+
             results = Dict(
-                Dict("Bucket" => "bucket-1", "prefix" => "") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name></Name>
-                    <Prefix/>
-                    <KeyCount>3</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                    <Contents>
-                      <Key>file1</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>12</Size>
-                    </Contents>
-                    <Contents>
-                      <Key>file2</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>0</Size>
-                    </Contents>
-                    <Contents>
-                      <Key>folder1/file3</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>4</Size>
-                    </Contents>
-                </ListBucketResult>
-                """,
-                Dict("Bucket" => "bucket-1", "prefix" => "folder1/file3") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name></Name>
-                    <Prefix>folder1/file3</Prefix>
-                    <KeyCount>1</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                    <Contents>
-                      <Key>folder1/file3</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>4</Size>
-                    </Contents>
-                </ListBucketResult>
-                """,
-                Dict("Bucket" => "bucket-1", "prefix" => "file1") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name></Name>
-                    <Prefix>file1</Prefix>
-                    <KeyCount>1</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                    <Contents>
-                      <Key>file1</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>12</Size>
-                    </Contents>
-                </ListBucketResult>
-                """,
-                Dict("Bucket" => "bucket-1", "prefix" => "file2") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name></Name>
-                    <Prefix>file2</Prefix>
-                    <KeyCount>1</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                    <Contents>
-                      <Key>file2</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>0</Size>
-                    </Contents>
-                </ListBucketResult>
-                """,
+                Dict(:bucket => "bucket-1", :prefix => "") => Dict{String, String}[
+                    Dict(
+                        "Key" => "file1",
+                        "Size" => "12",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                    Dict(
+                        "Key" => "file2",
+                        "Size" => "0",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                    Dict(
+                        "Key" => "folder1/file3",
+                        "Size" => "4",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                ],
+                Dict(:bucket => "bucket-1", :prefix => "folder1/file3") => Dict{String, String}[
+                    Dict(
+                        "Key" => "folder1/file3",
+                        "Size" => "4",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                ],
+                Dict(:bucket => "bucket-1", :prefix => "file2") => Dict{String, String}[
+                    Dict(
+                        "Key" => "file2",
+                        "Size" => "0",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                ],
+                Dict(:bucket => "bucket-1", :prefix => "file1") => Dict{String, String}[
+                    Dict(
+                        "Key" => "file1",
+                        "Size" => "12",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                ],
             )
+
             return results[args]
         end
     ),
     8 => (
-        @patch function list_objects_v2(config::AWSConfig, args)
+        @patch function _s3_list_objects(config::AWSConfig, bucket, prefix)
+            args = Dict{Symbol, String}(:bucket => bucket, :prefix => prefix)
+
             results = Dict(
-                Dict("Bucket" => "bucket", "prefix" => "test_file") =>
-                """
-                <?xml version="1.0" encoding="utf-8"?>
-                <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                    <Name></Name>
-                    <Prefix>test_file</Prefix>
-                    <KeyCount>1</KeyCount>
-                    <MaxKeys>1000</MaxKeys>
-                    <IsTruncated>false</IsTruncated>
-                    <Contents>
-                      <Key>test_file</Key>
-                      <LastModified>2018-06-27T15:19:55.000Z</LastModified>
-                      <Size>0</Size>
-                    </Contents>
-                </ListBucketResult>
-                """,
+                Dict(:bucket => "bucket", :prefix => "test_file") => Dict{String, String}[
+                    Dict(
+                        "Key" => "test_file",
+                        "Size" => "0",
+                        "LastModified" => "2018-06-27T15:19:55.000Z",
+                    ),
+                ],
             )
+
             return results[args]
         end
     ),

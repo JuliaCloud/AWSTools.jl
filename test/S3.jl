@@ -3,7 +3,8 @@ using FilePaths
 
 using AWSTools.CloudFormation: stack_output
 using AWSTools.S3: list_files, sync_key
-using AWSSDK.S3: put_object, create_bucket
+using AWSS3: s3_create_bucket, s3_put
+using AWSCore
 using Compat: @info, @warn
 using Compat.UUIDs
 
@@ -43,7 +44,7 @@ end
 
     @testset "Download object" begin
         patches = [
-            @patch get_object(config, args) = ""
+            @patch s3_get(config::AWSConfig, bucket, path; kwargs...) = ""
             list_S3_objects_patch[8]
         ]
 
@@ -476,7 +477,7 @@ end
                 if isempty(AWS_BUCKET)
                     bucket = string("awstools-s3-test-temp-", uuid4())
                     @info "Creating S3 bucket $bucket"
-                    create_bucket(Dict("Bucket" => bucket))
+                    s3_create_bucket(bucket)
                 else
                     bucket = AWS_BUCKET
                 end
@@ -513,11 +514,7 @@ end
                         )
 
                         try
-                            put_object(Dict(
-                                "Body" => "Remote content",
-                                "Bucket" => src.bucket,
-                                "Key" => src.key,
-                             ))
+                            s3_put(src.bucket, src.key, "Remote content")
 
                             @testset "Download to a directory" begin
                                 mktempdir() do dest_dir
@@ -570,11 +567,7 @@ end
 
                         # Set up the source s3 directory
                         for object in s3_objects
-                            put_object(Dict(
-                                "Body" => object["Content"],
-                                "Bucket" => object["Bucket"],
-                                "Key" => object["Key"],
-                            ))
+                            s3_put(object["Bucket"], object["Key"], object["Content"])
                         end
 
                         # Sync files
@@ -604,11 +597,11 @@ end
 
                         @testset "Sync modified dest file" begin
                             # Modify a file in dest
-                            put_object(Dict(
-                                "Body" =>  "Modified in dest.",
-                                "Bucket" => dir2_files[1].bucket,
-                                "Key" => dir2_files[1].key,
-                            ))
+                            s3_put(
+                                dir2_files[1].bucket,
+                                dir2_files[1].key,
+                                "Modified in dest.",
+                            )
 
                             # Syncing overwrites the newer file in dest because it is of
                             # a different size
@@ -631,11 +624,11 @@ end
                         @testset "Sync modified src file" begin
                             # Modify a file in src
                             s3_objects[1]["Content"] = "Modified in src."
-                            put_object(Dict(
-                                "Body" => s3_objects[1]["Content"],
-                                "Bucket" => s3_objects[1]["Bucket"],
-                                "Key" => s3_objects[1]["Key"],
-                            ))
+                            s3_put(
+                                s3_objects[1]["Bucket"],
+                                s3_objects[1]["Key"],
+                                s3_objects[1]["Content"],
+                            )
 
                             # Test that syncing overwrites the modified file in dest
                             sync(dir1, dir2)
@@ -660,11 +653,11 @@ end
                             #last_modified time.
 
                             # Modify a file in dest
-                            put_object(Dict(
-                                "Body" =>  "Modified in dest",
-                                "Bucket" => dir2_files[1].bucket,
-                                "Key" => dir2_files[1].key,
-                            ))
+                            s3_put(
+                                dir2_files[1].bucket,
+                                dir2_files[1].key,
+                                "Modified in dest",
+                            )
 
                             # Test that syncing doesn't overwrite the newer file in dest
                             sync(dir1, dir2)
