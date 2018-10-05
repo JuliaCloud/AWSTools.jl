@@ -3,11 +3,11 @@ module S3
 
 using AWSCore
 using FilePaths
+using AWSS3
 using Memento
 using Mocking
+using Retry
 using XMLDict
-
-using AWSSDK.S3: list_objects_v2
 using Compat: @__MODULE__, Nothing, findfirst, replace
 
 export S3Path, sync, upload
@@ -19,6 +19,56 @@ const logger = getlogger(@__MODULE__)
 __init__() = Memento.register(logger)
 
 include("S3Path.jl")
+
+# modified version of the function from AWSS3.jl with the delimiter parameter removed
+# https://github.com/samoconnor/AWSS3.jl/issues/34
+"""
+    _s3_list_objects([::AWSConfig], bucket, [path_prefix])
+[List Objects](http://docs.aws.amazon.com/AmazonS3/latest/API/RESTBucketGET.html)
+in `bucket` with optional `path_prefix`.
+Returns `Vector{Dict}` with keys `Key`, `LastModified`, `ETag`, `Size`,
+`Owner`, `StorageClass`.
+"""
+function _s3_list_objects(aws::AWSConfig, bucket, path_prefix="")
+
+    more = true
+    objects = []
+    marker = ""
+
+    while more
+
+        q = Dict{String, String}()
+        if path_prefix != ""
+            q["prefix"] = path_prefix
+        end
+        if marker != ""
+            q["marker"] = marker
+        end
+
+        @repeat 4 try
+
+            r = AWSS3.s3(aws, "GET", bucket; query = q)
+
+            more = r["IsTruncated"] == "true"
+            # FIXME return an iterator to allow streaming of truncated results!
+
+            if haskey(r, "Contents")
+                l = isa(r["Contents"], Vector) ? r["Contents"] : [r["Contents"]]
+                for object in l
+                    push!(objects, xml_dict(object))
+                    marker = object["Key"]
+                end
+            end
+
+        catch e
+            @delay_retry if ecode(e) in ["NoSuchBucket"] end
+        end
+    end
+
+    return objects
+end
+
+_s3_list_objects(a...) = _s3_list_objects(default_aws_config(), a...)
 
 """
     sync(src::AbstractString, dest::AbstractString; delete::Bool=false)
@@ -193,41 +243,26 @@ in their key.
 function list_files(path::S3Path; config::AWSConfig=default_aws_config())
     all_objects = Vector{AbstractPath}()
 
-    results = xml_dict(
-        @mock list_objects_v2(config, Dict("Bucket" => path.bucket, "prefix" => path.key))
-    )
+    all_items = @mock _s3_list_objects(config, path.bucket, path.key)
 
-    if "ListAllMyBucketsResult" in keys(results)
-        throw(ArgumentError("No s3 bucket found with the name: \"$(path.bucket)\""))
-    end
-
-    results = results["ListBucketResult"]
-
-    if "Contents" in keys(results)
-        all_items = if parse(Int, results["KeyCount"]) > 1
-            results["Contents"]
+    for item in all_items
+        # Remove the ending `Z` from LastModified field
+        last_modified_str = if item["LastModified"][end] == 'Z'
+            item["LastModified"][1:end - 1]
         else
-            [results["Contents"]]
+            item["LastModified"]
         end
+        last_modified = DateTime(last_modified_str)
 
-        for item in all_items
-            # Remove the ending `Z` from LastModified field
-            last_modified_str = if item["LastModified"][end] == 'Z'
-                item["LastModified"][1:end - 1]
-            else
-                item["LastModified"]
-            end
-            last_modified = DateTime(last_modified_str)
-
-            object = S3Path(
-                path.bucket,
-                item["Key"];
-                size=parse(Int, item["Size"]),
-                last_modified=last_modified,
-            )
-            !isdir(object) && push!(all_objects, object)
-        end
+        object = S3Path(
+            path.bucket,
+            item["Key"];
+            size=parse(Int, item["Size"]),
+            last_modified=last_modified,
+        )
+        !isdir(object) && push!(all_objects, object)
     end
+
     return all_objects
 end
 

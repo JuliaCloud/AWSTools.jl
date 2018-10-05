@@ -1,6 +1,6 @@
 julia 0.6
 AWSCore 0.3
-AWSSDK 0.2.0
+AWSS3
 Compat 1.0.0
 DataStructures 0.2.9
 FilePaths 0.6.0
@@ -8,3 +8,4 @@ Mocking 0.5.2
 Memento 0.7.0
 XMLDict 0.1.3
 MbedTLS
+Retry 0.2

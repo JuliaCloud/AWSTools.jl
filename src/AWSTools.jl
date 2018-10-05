@@ -3,8 +3,9 @@ __precompile__()
 module AWSTools
 
 using Mocking
-using AWSSDK.STS: get_caller_identity
+using AWSCore.Services: sts
 
+get_caller_identity() = sts("GetCallerIdentity")
 account_id() = (@mock get_caller_identity())["Account"]
 
 include("CloudFormation.jl")

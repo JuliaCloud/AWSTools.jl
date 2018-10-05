@@ -1,7 +1,9 @@
-using AWSSDK.S3: get_object, put_object, delete_object, copy_object
 using Base: @deprecate
+
+using AWSS3
 using Compat: replace, split
 using Compat.Dates
+
 
 """
     S3Path <: AbstractPath
@@ -138,7 +140,7 @@ function Base.read(path::S3Path, ::Type{String}; config::AWSConfig=default_aws_c
 end
 
 function Base.read(path::S3Path; config::AWSConfig=default_aws_config())
-    return @mock get_object(config, Dict("Bucket" => path.bucket, "Key" => path.key))
+    return @mock s3_get(config, path.bucket, path.key)
 end
 
 function Base.write(
@@ -147,10 +149,7 @@ function Base.write(
     mode="w";
     config::AWSConfig=default_aws_config()
 )
-    @mock put_object(
-        config,
-        Dict("Body" => content, "Bucket" => path.bucket, "Key" => path.key)
-    )
+    @mock s3_put(config, path.bucket, path.key, content)
 end
 
 function FilePaths.remove(
@@ -171,7 +170,7 @@ function FilePaths.remove(
     end
 
     info(logger, "delete: $object")
-    @mock delete_object(config, Dict("Bucket" => object.bucket, "Key" => object.key))
+    @mock s3_delete(config, object.bucket, object.key)
 end
 
 function Base.copy(
@@ -196,16 +195,12 @@ function Base.copy(
 
         if !already_exists || overwrite
             info(logger, "copy: $src to $dest")
-            @mock copy_object(
+            @mock s3_copy(
                 config,
-                Dict(
-                    "Bucket" => dest.bucket,
-                    "Key" => dest.key,
-                    "headers" => Dict(
-                        "x-amz-copy-source" => "/$(src.bucket)/$(src.key)",
-                        "x-amz-metadata-directive" => "REPLACE",
-                    )
-                )
+                src.bucket,
+                src.key;
+                to_bucket=dest.bucket,
+                to_path=dest.key,
             )
         end
     else
