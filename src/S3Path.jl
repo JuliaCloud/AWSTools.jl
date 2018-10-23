@@ -145,7 +145,7 @@ end
 
 function Base.write(
     path::S3Path,
-    content::AbstractString,
+    content::Union{String, Vector{UInt8}},
     mode="w";
     config::AWSConfig=default_aws_config()
 )
