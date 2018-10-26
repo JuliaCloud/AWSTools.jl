@@ -12,4 +12,6 @@ makedocs(
     assets=[
         "assets/invenia.css",
      ],
+     strict = true,
+     checkdocs = :none,
 )
