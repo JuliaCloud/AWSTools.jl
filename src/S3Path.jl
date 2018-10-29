@@ -51,10 +51,12 @@ end
 """
     S3Path(path::AbstractString) -> S3Path
 
-Create an S3Path given an s3 path of the form: "s3://bucket/key", can optionally specify
-the corresponding s3 object's size and last modified datetime.
+Create an S3Path given an s3 path of the form: "s3://bucket/key" or "bucket/key".
+Can optionally specify the corresponding s3 object's size and last modified datetime.
 """
 function S3Path(path::AbstractString; size::Integer=0, last_modified::DateTime=DateTime(0))
+    !startswith(path, "s3://") && (path = "s3://$path")
+
     # Don't split on the double `//` of "s3://bucket/key"
     pieces = split(path, r"(?<!/)/(?!/)"; keepempty=false)
 

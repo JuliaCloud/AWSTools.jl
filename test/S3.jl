@@ -74,12 +74,13 @@ end
         path1 = S3Path("s3://$bucket/$key")
         path2 = S3Path("$bucket", "$key")
         path3 = S3Path(("s3://$bucket", "$key"))
+        path4 = S3Path("$bucket/$key")
 
         @test path1.bucket == "$bucket"
         @test path1.key == "$key"
         @test parts(path1) == ("s3://$bucket", "$key")
 
-        @test path1 == path2 == path3
+        @test path1 == path2 == path3 == path4
 
         @test isfile(path1) == true
 
@@ -103,11 +104,16 @@ end
         @test path3.key == "$key"
         @test parts(path3) == pieces
 
-        @test path1 == path2 == path3
+        path4 = S3Path("$bucket/$key")
+        @test path3.bucket == "$bucket"
+        @test path3.key == "$key"
+        @test parts(path3) == pieces
+
+        @test path1 == path2 == path3 == path4
 
         @test isfile(path1) == true
 
-         # Test folder
+        # Test folder
         bucket = "bucket"
         key = "folder1/folder2/"
         pieces = ("s3://$bucket", "folder1", "folder2", "")
@@ -127,9 +133,16 @@ end
         @test path3.key == "$key"
         @test parts(path3) == pieces
 
-        @test path1 == path2 == path3
+        path4 = S3Path("$bucket/$key")
+        @test path3.bucket == "$bucket"
+        @test path3.key == "$key"
+        @test parts(path3) == pieces
+
+        @test path1 == path2 == path3 == path4
 
         @test isdir(path1) == true
+
+        # Test joins with folder
         joined_path = join(path1, "myfile")
         @test joined_path == S3Path("s3://$bucket/$(key)myfile")
         @test parts(joined_path) == ("s3://$bucket", "folder1", "folder2", "myfile")
@@ -154,9 +167,16 @@ end
         @test path3.key == "$key"
         @test parts(path3) == pieces
 
-        @test path1 == path2 == path3
+        path4 = S3Path("$bucket/$key")
+        @test path3.bucket == "$bucket"
+        @test path3.key == "$key"
+        @test parts(path3) == pieces
+
+        @test path1 == path2 == path3 == path4
 
         @test isdir(path1) == true
+
+        # Test joins with bucket
         joined_path = join(path1, "myfile")
         @test joined_path == S3Path("s3://$bucket/$(key)myfile")
         @test parts(joined_path) == ("s3://$bucket", "myfile")
