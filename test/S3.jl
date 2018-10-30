@@ -41,15 +41,13 @@ end
 
 
 @testset "S3" begin
-
     @testset "Download object" begin
-        patches = [
-            @patch s3_get(config::AWSConfig, bucket, path; kwargs...) = ""
-            list_S3_objects_patch[8]
-        ]
+        content = format_s3_objects([
+            ("bucket", "test_file"),
+        ])
 
         mktempdir() do tmp_dir
-            apply(patches) do
+            apply(s3_patches!(content)) do
                 # Download to local file
                 s3_object = S3Path("bucket", "test_file")
                 localfile = Path((tmp_dir, "local_file"))
@@ -191,7 +189,6 @@ end
     end
 
     @testset "Syncing" begin
-
         @testset "Sync two local directories" begin
             # Create files to sync
             src = Path(mktempdir())
@@ -333,111 +330,230 @@ end
             # Verify we don't run into errors and that the expected parameters are
             # passed to aws calls (via the patches)
             @testset "Sync two buckets" begin
-                patches = [
-                    copy_object_patch[1],
-                    list_S3_objects_patch[1],
-                    delete_object_patch[1],
+                content = format_s3_objects([
+                    ("bucket-1", "file1"),
+                    ("bucket-1", "file2"),
+                    ("bucket-1", "folder1/file3"),
+                ])
+                changes = []
+                expected_changes = [
+                    :copy => Dict(
+                        :from => ("bucket-1", "folder1/file3"),
+                        :to   => ("bucket-2", "folder1/file3"),
+                    )
+                    :copy => Dict(
+                        :from => ("bucket-1", "file1"),
+                        :to   => ("bucket-2", "file1"),
+                    )
+                    :copy => Dict(
+                        :from => ("bucket-1", "file2"),
+                        :to   => ("bucket-2", "file2"),
+                    )
                 ]
 
-                apply(patches) do
+                apply(s3_patches!(content, changes)) do
                     sync("s3://bucket-1/", "s3://bucket-2/")
-                    sync("s3://bucket-1/", "s3://bucket-2/", delete=true)
+                    @test changes == expected_changes
+                    empty!(changes)
 
+                    # No deletions
+                    sync("s3://bucket-1/", "s3://bucket-2/", delete=true)
+                    @test changes == expected_changes
+                    empty!(changes)
                 end
             end
 
             @testset "Sync prefix in bucket to another bucket" begin
-                patches = [
-                    copy_object_patch[2],
-                    list_S3_objects_patch[2],
-                    delete_object_patch[2],
+                content = format_s3_objects([
+                    ("bucket-1", "dir1/file"),
+                    ("bucket-1", "dir1/folder1/file"),
+                ])
+                changes = []
+                expected_changes = [
+                    :copy => Dict(
+                        :from => ("bucket-1", "dir1/folder1/file"),
+                        :to   => ("bucket-2", "folder1/file"),
+                    ),
+                    :copy => Dict(
+                        :from => ("bucket-1", "dir1/file"),
+                        :to   => ("bucket-2", "file"),
+                    ),
                 ]
 
-                apply(patches) do
+                apply(s3_patches!(content, changes)) do
                     sync("s3://bucket-1/dir1/", "s3://bucket-2/")
+                    @test changes == expected_changes
+                    empty!(changes)
+
+                    # No deletions
                     sync("s3://bucket-1/dir1/", "s3://bucket-2/", delete=true)
+                    @test changes == expected_changes
+                    empty!(changes)
                 end
             end
 
             @testset "Sync two prefixes in same bucket" begin
-                patches = [
-                    copy_object_patch[3],
-                    list_S3_objects_patch[3],
-                    delete_object_patch[3],
+                content = format_s3_objects([
+                    ("bucket-1", "dir1/folder1/file"),
+                    ("bucket-1", "dir1/file"),
+                    ("bucket-1", "dir2/folder2/file2"),
+                ])
+                changes = []
+                expected_changes = [
+                    :copy => Dict(
+                        :from => ("bucket-1", "dir1/folder1/file"),
+                        :to   => ("bucket-1", "dir2/folder1/file"),
+                    ),
+                    :copy => Dict(
+                        :from => ("bucket-1", "dir1/file"),
+                        :to   => ("bucket-1", "dir2/file"),
+                    ),
+                ]
+                expected_delete = [
+                    expected_changes...,
+                    :delete => ("bucket-1", "dir2/folder2/file2"),
                 ]
 
-                apply(patches) do
+                apply(s3_patches!(content, changes)) do
                     sync("s3://bucket-1/dir1/", "s3://bucket-1/dir2/")
+                    @test changes == expected_changes
+                    empty!(changes)
+
                     sync("s3://bucket-1/dir1/", "s3://bucket-1/dir2/", delete=true)
+                    @test changes == expected_delete
+                    empty!(changes)
                 end
             end
 
             @testset "Sync prefixes in different buckets" begin
-                patches = [
-                    copy_object_patch[4],
-                    list_S3_objects_patch[4],
-                    delete_object_patch[4],
+                content = format_s3_objects([
+                    ("bucket-1", "dir1/file"),
+                    ("bucket-1", "dir1/folder1/file"),
+                    ("bucket-2", "dir2/file2"),
+                ])
+                changes = []
+                expected_changes = [
+                    :copy => Dict(
+                        :from => ("bucket-1", "dir1/folder1/file"),
+                        :to   => ("bucket-2", "dir2/folder1/file"),
+                    ),
+                    :copy => Dict(
+                        :from => ("bucket-1", "dir1/file"),
+                        :to   => ("bucket-2", "dir2/file"),
+                    ),
+                ]
+                expected_delete = [
+                    expected_changes...,
+                    :delete => ("bucket-2", "dir2/file2"),
                 ]
 
-                apply(patches) do
+                apply(s3_patches!(content, changes)) do
                     sync("s3://bucket-1/dir1/", "s3://bucket-2/dir2/")
+                    @test changes == expected_changes
+                    empty!(changes)
+
                     sync("s3://bucket-1/dir1/", "s3://bucket-2/dir2/", delete=true)
+                    @test changes == expected_delete
+                    empty!(changes)
                 end
             end
 
             @testset "Sync bucket to prefix" begin
-                patches = [
-                    copy_object_patch[5],
-                    list_S3_objects_patch[5],
-                    delete_object_patch[5],
+                content = format_s3_objects([
+                    ("bucket-1", "folder1/file3") => Dict(),
+                    ("bucket-1", "file1") => Dict(),
+                    ("bucket-1", "file2") => Dict("Size" => "0"),
+                    ("bucket-2", "dir2/folder2/file3") => Dict(),
+                    ("bucket-2", "dir2/file2") => Dict("Size" => "12"),
+                ])
+                changes = []
+                expected_changes = [
+                    :copy => Dict(
+                        :from => ("bucket-1", "folder1/file3"),
+                        :to   => ("bucket-2", "dir2/folder1/file3"),
+                    ),
+                    :copy => Dict(
+                        :from => ("bucket-1", "file1"),
+                        :to   => ("bucket-2", "dir2/file1"),
+                    ),
+                    :copy => Dict(
+                        :from => ("bucket-1", "file2"),
+                        :to   => ("bucket-2", "dir2/file2"),
+                    ),
+                ]
+                expected_delete = [
+                    expected_changes...,
+                    :delete => ("bucket-2", "dir2/folder2/file3"),
                 ]
 
-                apply(patches) do
+                apply(s3_patches!(content, changes)) do
                     sync("s3://bucket-1/", "s3://bucket-2/dir2/")
+                    @test changes == expected_changes
+                    empty!(changes)
+
                     sync("s3://bucket-1/", "s3://bucket-2/dir2/", delete=true)
+                    @test changes == expected_delete
+                    empty!(changes)
                 end
             end
-
         end
 
         @testset "Sync local folder to s3 bucket" begin
-            patches = [
-                put_object_patch[6],
-                list_S3_objects_patch[6],
-                delete_object_patch[6],
+            content = format_s3_objects([
+                ("bucket-1", "folder1/file3"),
+                ("bucket-1", "file1"),
+                ("bucket-1", "file2"),
+            ])
+            changes = []
+            expected_changes = [
+                :put => Dict(
+                    :dest => ("bucket-1", "folder/file"),
+                    :data => "",
+                ),
+                :put => Dict(
+                    :dest => ("bucket-1", "file"),
+                    :data => "Hello World!",
+                ),
+            ]
+            expected_delete = [
+                expected_changes...,
+                :delete => ("bucket-1", "folder1/file3"),
+                :delete => ("bucket-1", "file1"),
+                :delete => ("bucket-1", "file2"),
             ]
 
-            apply(patches) do
+            mktempdir() do src
+                apply(s3_patches!(content, changes)) do
+                    src_file = "$src/file"
+                    write(src_file, "Hello World!")
 
-                src = mktempdir()
+                    src_folder = "$src/folder"
+                    mkdir(src_folder)
+                    src_folder_file = "$src_folder/file"
+                    touch(src_folder_file) # empty file
 
-                src_file = "$src/file"
-                # touch(src_file)
-                write(src_file, "Hello World!")
+                    sync(src, "s3://bucket-1/")
+                    @test changes == expected_changes
+                    empty!(changes)
 
-                src_folder = "$src/folder"
-                mkdir(src_folder)
-                src_folder_file = "$src_folder/file"
-                touch(src_folder_file) # empty file
-
-                sync(src, "s3://bucket-1/")
-
-                # S3 directory was not empty initially, so this will delete all
-                # its original files that are not also in src
-                sync(src, "s3://bucket-1/", delete=true)
-
-                remove(Path(src); recursive=true)
+                    # S3 directory was not empty initially, so this will delete all
+                    # its original files that are not also in src
+                    sync(src, "s3://bucket-1/", delete=true)
+                    @test changes == expected_delete
+                    empty!(changes)
+                end
             end
         end
 
         @testset "Sync s3 bucket to local folder" begin
-            patches = [
-                get_object_patch[7],
-                list_S3_objects_patch[7],
-            ]
+            content = format_s3_objects([
+                ("bucket-1", "folder1/file3") => Dict("Content" => "Test"),
+                ("bucket-1", "file1") => Dict("Content" => "Hello World!"),
+                ("bucket-1", "file2") => Dict("Content" => ""),
+            ])
 
             mktempdir() do folder
-                apply(patches) do
+                apply(s3_patches!(content)) do
 
                     src = Path("s3://bucket-1/")
                     dest = Path(folder)
