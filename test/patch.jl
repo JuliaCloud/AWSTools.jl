@@ -150,7 +150,7 @@ end
 
 function s3_patches!(content::AbstractDict, changes::AbstractVector=[])
     return [
-        @patch function _s3_list_objects(config::AWSConfig, bucket, path_prefix)
+        @patch function _s3_list_objects(config::AWSConfig, bucket, path_prefix; kwargs...)
             results = []
             for ((b, key), data) in content
                 if b == bucket && startswith(key, path_prefix)

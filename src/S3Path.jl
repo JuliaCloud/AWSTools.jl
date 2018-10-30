@@ -118,12 +118,12 @@ function Base.isdir(path::S3Path)
     else
         return false
     end
-    objects = @mock _s3_list_objects(default_aws_config(), path.bucket, key)
+    objects = @mock _s3_list_objects(default_aws_config(), path.bucket, key; max_items=1)
     length(objects) > 0
 end
 
 Base.isfile(path::S3Path) = @mock s3_exists(default_aws_config(), path.bucket, path.key)
-FilePaths.exists(object::S3Path) = length(list_files(object)) > 0
+FilePathsBase.exists(object::S3Path) = length(list_files(object)) > 0
 
 function FilePathsBase.parents(path::S3Path)
     if hasparent(path)
