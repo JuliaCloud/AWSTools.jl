@@ -75,21 +75,20 @@ AWSTools.EC2.instance_region()
 ```@docs
 AWSTools.S3.S3Path
 AWSTools.S3.S3Path(::Tuple)
-AWSTools.S3.S3Path(::FilePaths.AbstractPath)
+AWSTools.S3.S3Path(::FilePathsBase.AbstractPath)
 AWSTools.S3.S3Path(::AbstractString, ::AbstractString)
 AWSTools.S3.sync(::AbstractString, ::AbstractString)
-AWSTools.S3.sync(::FilePaths.AbstractPath, ::FilePaths.AbstractPath)
+AWSTools.S3.sync(::FilePathsBase.AbstractPath, ::FilePathsBase.AbstractPath)
 AWSTools.S3.upload
 ```
 
 #### Internal use 
 
 ```@docs
-AWSTools.S3.list_files(::FilePaths.AbstractPath)
+AWSTools.S3.list_files(::FilePathsBase.AbstractPath)
 AWSTools.S3.list_files(::AWSTools.S3.S3Path)
-AWSTools.S3.AbstractPath(::AbstractString)
-AWSTools.S3.cleanup_empty_folders(::FilePaths.AbstractPath)
-AWSTools.S3.sync_key(::FilePaths.AbstractPath, ::FilePaths.AbstractPath)
+AWSTools.S3.cleanup_empty_folders(::FilePathsBase.AbstractPath)
+AWSTools.S3.sync_key(::FilePathsBase.AbstractPath, ::FilePathsBase.AbstractPath)
 AWSTools.S3.should_sync
 ```
 

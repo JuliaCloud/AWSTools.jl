@@ -1,9 +1,7 @@
-using Base: @deprecate
-
-using AWSS3
-using Compat: replace, split
 using Compat.Dates
 
+using Base: @deprecate
+using Compat: replace, split
 
 """
     S3Path <: AbstractPath
@@ -51,10 +49,12 @@ end
 """
     S3Path(path::AbstractString) -> S3Path
 
-Create an S3Path given an s3 path of the form: "s3://bucket/key", can optionally specify
-the corresponding s3 object's size and last modified datetime.
+Create an S3Path given an s3 path of the form: "s3://bucket/key" or "bucket/key".
+Can optionally specify the corresponding s3 object's size and last modified datetime.
 """
 function S3Path(path::AbstractString; size::Integer=0, last_modified::DateTime=DateTime(0))
+    !startswith(path, "s3://") && (path = "s3://$path")
+
     # Don't split on the double `//` of "s3://bucket/key"
     pieces = split(path, r"(?<!/)/(?!/)"; keepempty=false)
 
@@ -87,13 +87,15 @@ function S3Path(
     return S3Path(pieces, bucket, key, size, last_modified)
 end
 
+FilePathsBase.ispathtype(::Type{S3Path}, str::AbstractString) = startswith(str, "s3://")
+
 function Base.:(==)(a::S3Path, b::S3Path)
     return a.parts == b.parts && a.bucket == b.bucket && a.key == b.key
 end
 
 # The following should be implemented in the concrete types
 Base.String(object::S3Path) = joinpath(parts(object)...)
-FilePaths.parts(object::S3Path) = object.parts
+FilePathsBase.parts(object::S3Path) = object.parts
 root(path::S3Path) = ""
 drive(path::S3Path) = ("s3://", replace(path, r"^s3://" => s""))
 
@@ -101,14 +103,14 @@ drive(path::S3Path) = ("s3://", replace(path, r"^s3://" => s""))
 Base.show(io::IO, object::S3Path) = print(io, "p\"$(String(object))\"")
 Base.real(object::S3Path) = object
 Base.size(object::S3Path) = object.size
-FilePaths.modified(object::S3Path) = object.last_modified
+FilePathsBase.modified(object::S3Path) = object.last_modified
 
 Base.isdir(object::S3Path) = isempty(object.key) || endswith(object.key, "/")
 Base.isfile(object::S3Path) = !isdir(object)
 
-FilePaths.exists(object::S3Path) = length(list_files(object)) > 0 ? true : false
+FilePathsBase.exists(object::S3Path) = length(list_files(object)) > 0 ? true : false
 
-function FilePaths.parents(path::S3Path)
+function FilePathsBase.parents(path::S3Path)
     if hasparent(path)
         return map(1:length(parts(path))-1) do i
             S3Path((parts(path)[1:i]..., ""))
@@ -152,7 +154,7 @@ function Base.write(
     @mock s3_put(config, path.bucket, path.key, content)
 end
 
-function FilePaths.remove(
+function FilePathsBase.remove(
     object::S3Path;
     recursive::Bool=false,
     config::AWSConfig=default_aws_config()
@@ -272,7 +274,7 @@ function Base.copy(
     return dest
 end
 
-Base.download(src::S3Path; kwargs...) = copy(src, AbstractPath(pwd()); kwargs...)
+Base.download(src::S3Path; kwargs...) = copy(src, Path(pwd()); kwargs...)
 Base.download(src::S3Path, dest::AbstractPath; kwargs...) = copy(src, dest; kwargs...)
 
 """

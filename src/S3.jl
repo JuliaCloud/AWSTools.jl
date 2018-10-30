@@ -2,23 +2,29 @@ __precompile__()
 module S3
 
 using AWSCore
-using FilePaths
 using AWSS3
+using FilePathsBase
 using Memento
 using Mocking
 using Retry
 using XMLDict
+
 using Compat: @__MODULE__, Nothing, findfirst, replace
 
 export S3Path, sync, upload
 
+include("S3Path.jl")
+
 const logger = getlogger(@__MODULE__)
+
 # Register the module level logger at runtime so that folks can access the logger via
 # `getlogger(MyModule)`. If this line is not included then the precompiled
 # `MyModule.logger` won't be registered at runtime.
-__init__() = Memento.register(logger)
+function __init__()
+    Memento.register(logger)
+    FilePathsBase.register(S3Path)
+end
 
-include("S3Path.jl")
 
 # modified version of the function from AWSS3.jl with the delimiter parameter removed
 # https://github.com/samoconnor/AWSS3.jl/issues/34
@@ -89,9 +95,7 @@ function sync(
     delete::Bool=false,
     config::AWSConfig=default_aws_config(),
 )
-    src = AbstractPath(src)
-    dest = AbstractPath(dest)
-    sync(src, dest; delete=delete)
+    sync(Path(src), Path(dest); delete=delete)
 end
 
 """
@@ -193,7 +197,7 @@ function sync_path(src::AbstractPath, dest::AbstractPath; kwargs...)
     # Make sure parent directory exists
     mkdir(parent(dest); recursive=true, exist_ok=true)
 
-    # Log `copy` operation for local paths since this isn't logged in FilePaths
+    # Log `copy` operation for local paths since this isn't logged in FilePathsBase
     info(logger, "copy: $src to $dest")
     copy(src, dest; overwrite=true, exist_ok=true)
 end
@@ -265,14 +269,6 @@ function list_files(path::S3Path; config::AWSConfig=default_aws_config())
 
     return all_objects
 end
-
-"""
-    AbstractPath(path::AbstractString) -> AbstractPath
-
-Identifies whether the path is from the local filesystem or if it is an s3 path (denoted by
-it starting with "s3://").
-"""
-AbstractPath(path::AbstractString) = startswith(path, "s3://") ? S3Path(path) : Path(path)
 
 """
     cleanup_empty_folders(path::AbstractPath)

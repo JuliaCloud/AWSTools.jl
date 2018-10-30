@@ -1,12 +1,12 @@
+using AWSCore
 using AWSTools.S3
-using FilePaths
+using FilePathsBase
+using Compat.UUIDs
 
 using AWSTools.CloudFormation: stack_output
 using AWSTools.S3: list_files, sync_key
 using AWSS3: s3_create_bucket, s3_put
-using AWSCore
 using Compat: @info, @warn
-using Compat.UUIDs
 
 setlevel!(getlogger(AWSTools.S3), "info")
 
@@ -59,7 +59,7 @@ end
 
                 # Download to directory
                 s3_object = S3Path("bucket", "test_file")
-                downloaded_file = download(s3_object, AbstractPath(tmp_dir))
+                downloaded_file = download(s3_object, Path(tmp_dir))
                 @test readdir(tmp_dir) == ["local_file", "test_file"]
                 @test isa(downloaded_file, AbstractPath)
             end
@@ -74,12 +74,13 @@ end
         path1 = S3Path("s3://$bucket/$key")
         path2 = S3Path("$bucket", "$key")
         path3 = S3Path(("s3://$bucket", "$key"))
+        path4 = S3Path("$bucket/$key")
 
         @test path1.bucket == "$bucket"
         @test path1.key == "$key"
         @test parts(path1) == ("s3://$bucket", "$key")
 
-        @test path1 == path2 == path3
+        @test path1 == path2 == path3 == path4
 
         @test isfile(path1) == true
 
@@ -103,11 +104,16 @@ end
         @test path3.key == "$key"
         @test parts(path3) == pieces
 
-        @test path1 == path2 == path3
+        path4 = S3Path("$bucket/$key")
+        @test path3.bucket == "$bucket"
+        @test path3.key == "$key"
+        @test parts(path3) == pieces
+
+        @test path1 == path2 == path3 == path4
 
         @test isfile(path1) == true
 
-         # Test folder
+        # Test folder
         bucket = "bucket"
         key = "folder1/folder2/"
         pieces = ("s3://$bucket", "folder1", "folder2", "")
@@ -127,9 +133,16 @@ end
         @test path3.key == "$key"
         @test parts(path3) == pieces
 
-        @test path1 == path2 == path3
+        path4 = S3Path("$bucket/$key")
+        @test path3.bucket == "$bucket"
+        @test path3.key == "$key"
+        @test parts(path3) == pieces
+
+        @test path1 == path2 == path3 == path4
 
         @test isdir(path1) == true
+
+        # Test joins with folder
         joined_path = join(path1, "myfile")
         @test joined_path == S3Path("s3://$bucket/$(key)myfile")
         @test parts(joined_path) == ("s3://$bucket", "folder1", "folder2", "myfile")
@@ -154,9 +167,16 @@ end
         @test path3.key == "$key"
         @test parts(path3) == pieces
 
-        @test path1 == path2 == path3
+        path4 = S3Path("$bucket/$key")
+        @test path3.bucket == "$bucket"
+        @test path3.key == "$key"
+        @test parts(path3) == pieces
+
+        @test path1 == path2 == path3 == path4
 
         @test isdir(path1) == true
+
+        # Test joins with bucket
         joined_path = join(path1, "myfile")
         @test joined_path == S3Path("s3://$bucket/$(key)myfile")
         @test parts(joined_path) == ("s3://$bucket", "myfile")
@@ -419,8 +439,8 @@ end
             mktempdir() do folder
                 apply(patches) do
 
-                    src = AbstractPath("s3://bucket-1/")
-                    dest = AbstractPath(folder)
+                    src = Path("s3://bucket-1/")
+                    dest = Path(folder)
 
                     sync(src, dest)
 
@@ -486,9 +506,7 @@ end
 
                 try
                     @testset "Upload to s3" begin
-                        dest = AbstractPath(
-                            "s3://$bucket/awstools/$test_run_id/folder3/testfile"
-                        )
+                        dest = Path("s3://$bucket/awstools/$test_run_id/folder3/testfile")
 
                         try
                             mktemp() do src, stream
@@ -497,7 +515,7 @@ end
 
                                 @test list_files(dest) == []
 
-                                uploaded_file = upload(AbstractPath(src), dest)
+                                uploaded_file = upload(Path(src), dest)
                                 @test isa(uploaded_file, S3Path)
 
                                 @test list_files(dest) == [dest]
@@ -509,28 +527,26 @@ end
                     end
 
                     @testset "Download from s3" begin
-                        src = AbstractPath(
-                            "s3://$bucket/awstools/$test_run_id/folder4/testfile"
-                        )
+                        src = Path("s3://$bucket/awstools/$test_run_id/folder4/testfile")
 
                         try
                             s3_put(src.bucket, src.key, "Remote content")
 
                             @testset "Download to a directory" begin
                                 mktempdir() do dest_dir
-                                    dest = AbstractPath(dest_dir)
+                                    dest = Path(dest_dir)
 
                                     dest_file = download(src, dest)
                                     @test isa(dest_file, AbstractPath)
 
-                                    @test list_files(dest) == [AbstractPath(dest_file)]
+                                    @test list_files(dest) == [Path(dest_file)]
                                     @test read(dest_file, String) == "Remote content"
                                 end
                             end
 
                             @testset "Download to a local file" begin
                                 mktemp() do dest_file, stream
-                                    dest = AbstractPath(dest_file)
+                                    dest = Path(dest_file)
                                     close(stream)
 
                                     dest_file = download(src, dest; overwrite=true)
@@ -552,8 +568,8 @@ end
                         dir1 = "s3://$bucket/$folder1/"
                         dir2 = "s3://$bucket/$folder2/"
 
-                        src_dir = AbstractPath(dir1)
-                        dest_dir = AbstractPath(dir2)
+                        src_dir = Path(dir1)
+                        dest_dir = Path(dir2)
 
                         # Delete any pre-existing objects in the s3 bucket directories
                         remove(src_dir; recursive=true)
