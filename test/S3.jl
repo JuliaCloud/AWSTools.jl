@@ -80,7 +80,7 @@ end
 
         @test path1 == path2 == path3 == path4
 
-        @test isfile(path1) == true
+        @test !isdirpath(path1)
 
         # Test longer key
         bucket = "bucket"
@@ -109,7 +109,7 @@ end
 
         @test path1 == path2 == path3 == path4
 
-        @test isfile(path1) == true
+        @test !isdirpath(path1)
 
         # Test folder
         bucket = "bucket"
@@ -138,7 +138,7 @@ end
 
         @test path1 == path2 == path3 == path4
 
-        @test isdir(path1) == true
+        @test isdirpath(path1)
 
         # Test joins with folder
         joined_path = join(path1, "myfile")
@@ -172,7 +172,7 @@ end
 
         @test path1 == path2 == path3 == path4
 
-        @test isdir(path1) == true
+        @test isdirpath(path1)
 
         # Test joins with bucket
         joined_path = join(path1, "myfile")

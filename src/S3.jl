@@ -29,16 +29,19 @@ end
 # modified version of the function from AWSS3.jl with the delimiter parameter removed
 # https://github.com/samoconnor/AWSS3.jl/issues/34
 """
-    _s3_list_objects([::AWSConfig], bucket, [path_prefix])
+    _s3_list_objects([::AWSConfig], bucket, [path_prefix]; max_items=nothing)
+
 [List Objects](http://docs.aws.amazon.com/AmazonS3/latest/API/RESTBucketGET.html)
 in `bucket` with optional `path_prefix`.
+
 Returns `Vector{Dict}` with keys `Key`, `LastModified`, `ETag`, `Size`,
 `Owner`, `StorageClass`.
 """
-function _s3_list_objects(aws::AWSConfig, bucket, path_prefix="")
+function _s3_list_objects(aws::AWSConfig, bucket, path_prefix=""; max_items=nothing)
 
     more = true
     objects = []
+    num_objects = 0
     marker = ""
 
     while more
@@ -50,22 +53,26 @@ function _s3_list_objects(aws::AWSConfig, bucket, path_prefix="")
         if marker != ""
             q["marker"] = marker
         end
+        if max_items !== nothing
+            # Note: AWS seems to only return up to 1000 items
+            q["max-keys"] = string(max_items - num_objects)
+        end
 
         @repeat 4 try
 
             r = AWSS3.s3(aws, "GET", bucket; query = q)
 
-            more = r["IsTruncated"] == "true"
             # FIXME return an iterator to allow streaming of truncated results!
-
             if haskey(r, "Contents")
                 l = isa(r["Contents"], Vector) ? r["Contents"] : [r["Contents"]]
                 for object in l
                     push!(objects, xml_dict(object))
+                    num_objects += 1
                     marker = object["Key"]
                 end
             end
 
+            more = r["IsTruncated"] == "true" && (max_items === nothing || num_objects < max_items)
         catch e
             @delay_retry if ecode(e) in ["NoSuchBucket"] end
         end
@@ -74,7 +81,9 @@ function _s3_list_objects(aws::AWSConfig, bucket, path_prefix="")
     return objects
 end
 
-_s3_list_objects(a...) = _s3_list_objects(default_aws_config(), a...)
+function _s3_list_objects(args...; kwargs...)
+    _s3_list_objects(default_aws_config(), args...; kwargs...)
+end
 
 """
     sync(src::AbstractString, dest::AbstractString; delete::Bool=false)

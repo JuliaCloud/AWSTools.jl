@@ -105,10 +105,25 @@ Base.real(object::S3Path) = object
 Base.size(object::S3Path) = object.size
 FilePathsBase.modified(object::S3Path) = object.last_modified
 
-Base.isdir(object::S3Path) = isempty(object.key) || endswith(object.key, "/")
-Base.isfile(object::S3Path) = !isdir(object)
+Base.isdirpath(path::S3Path) = isempty(path.key) || endswith(path.key, '/')
 
-FilePathsBase.exists(object::S3Path) = length(list_files(object)) > 0 ? true : false
+function Base.isdir(path::S3Path)
+    # Note: objects "s3://bucket/a" and "s3://bucket/a/b" can co-exist. If both of these
+    # objects exist listing the keys for "s3://bucket/a" returns ["s3://bucket/a"] while
+    # "s3://bucket/a/" returns ["s3://bucket/a/b"].
+    if isempty(path.key) || path.key == "/"
+        key = ""
+    elseif endswith(path.key, '/')
+        key = path.key
+    else
+        return false
+    end
+    objects = @mock _s3_list_objects(default_aws_config(), path.bucket, key; max_items=1)
+    length(objects) > 0
+end
+
+Base.isfile(path::S3Path) = @mock s3_exists(default_aws_config(), path.bucket, path.key)
+FilePathsBase.exists(object::S3Path) = length(list_files(object)) > 0
 
 function FilePathsBase.parents(path::S3Path)
     if hasparent(path)
@@ -159,7 +174,7 @@ function FilePathsBase.remove(
     recursive::Bool=false,
     config::AWSConfig=default_aws_config()
 )
-    if isdir(object)
+    if isdirpath(object)
         files = list_files(object)
 
         if recursive
@@ -185,7 +200,7 @@ function Base.copy(
     if exists(src)
 
         # If `dest` is a directory, copy `src` to that directory with the same name
-        if isdir(dest)
+        if isdirpath(dest)
             dest = join(dest, basename(src))
         end
 
@@ -253,7 +268,7 @@ function Base.copy(
     if exists(src)
 
         # If `dest` is a directory, upload `src` to that directory with the same name
-        if isdir(dest)
+        if isdirpath(dest)
             dest = join(dest, basename(src))
         end
 
