@@ -116,17 +116,44 @@ describe_stacks_patch = @patch function describe_stacks(args...; kwargs...)
 end
 
 
+function format_s3_objects(content::AbstractDict)
+    objects = OrderedDict{Tuple{String,String}, Dict{String,Any}}()
+    for ((bucket::String, key::String), data) in content
+        formatted_data = Dict{String, Any}(k => v for (k, v) in data)
+
+        # Add in defaults for required keys
+        get!(formatted_data, "Key", key)
+        get!(formatted_data, "LastModified", "1970-01-01T00:00:00.000Z")
+        get!(formatted_data, "Size") do
+            len = if haskey(formatted_data, "Content")
+                sizeof(formatted_data["Content"])
+            else
+                0
+            end
+            string(len)
+        end
+
+        push!(objects, (bucket, key) => formatted_data)
+    end
+
+    return objects
+end
+
+function format_s3_objects(content::AbstractVector{Pair{Tuple{String,String},D}}) where D <: AbstractDict
+    format_s3_objects(OrderedDict(k => v for (k, v) in content))
+end
+
+function format_s3_objects(content::AbstractVector{Tuple{String,String}})
+    format_s3_objects(OrderedDict(k => Dict() for k in content))
+end
+
+
 function s3_patches!(content::AbstractDict, changes::AbstractVector=[])
     return [
         @patch function _s3_list_objects(config::AWSConfig, bucket, path_prefix)
             results = []
             for ((b, key), data) in content
                 if b == bucket && startswith(key, path_prefix)
-                    # Mutating original data, it's just a test though
-                    get!(data, "Key", key)
-                    get!(data, "LastModified", "1970-01-01T00:00:00.000Z")
-                    get!(data, "Size", "0")
-
                     push!(results, data)
                 end
             end

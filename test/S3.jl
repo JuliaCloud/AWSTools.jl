@@ -42,12 +42,9 @@ end
 
 @testset "S3" begin
     @testset "Download object" begin
-        content = OrderedDict(
-            ("bucket", "test_file") => Dict(
-                "Size" => "0",
-                "LastModified" => "2018-06-27T15:19:55.000Z",
-            ),
-        )
+        content = format_s3_objects([
+            ("bucket", "test_file"),
+        ])
 
         mktempdir() do tmp_dir
             apply(s3_patches!(content)) do
@@ -313,11 +310,11 @@ end
             # Verify we don't run into errors and that the expected parameters are
             # passed to aws calls (via the patches)
             @testset "Sync two buckets" begin
-                content = OrderedDict(
-                    ("bucket-1", "file1") => Dict(),
-                    ("bucket-1", "file2") => Dict(),
-                    ("bucket-1", "folder1/file3") => Dict(),
-                )
+                content = format_s3_objects([
+                    ("bucket-1", "file1"),
+                    ("bucket-1", "file2"),
+                    ("bucket-1", "folder1/file3"),
+                ])
                 changes = []
                 expected_changes = [
                     :copy => Dict(
@@ -347,16 +344,10 @@ end
             end
 
             @testset "Sync prefix in bucket to another bucket" begin
-                content = OrderedDict(
-                    ("bucket-1", "dir1/file") => Dict(
-                        "Size" => "12",
-                        "LastModified" => "2018-06-27T15:19:55.000Z",
-                    ),
-                    ("bucket-1", "dir1/folder1/file") => Dict(
-                        "Size" => "4",
-                        "LastModified" => "2018-06-27T15:19:55.000Z",
-                    ),
-                )
+                content = format_s3_objects([
+                    ("bucket-1", "dir1/file"),
+                    ("bucket-1", "dir1/folder1/file"),
+                ])
                 changes = []
                 expected_changes = [
                     :copy => Dict(
@@ -382,20 +373,11 @@ end
             end
 
             @testset "Sync two prefixes in same bucket" begin
-                content = Dict(
-                    ("bucket-1", "dir1/folder1/file") => Dict(
-                        "Size" => "4",
-                        "LastModified" => "2018-06-27T15:19:55.000Z",
-                    ),
-                    ("bucket-1", "dir1/file") => Dict(
-                        "Size" => "12",
-                        "LastModified" => "2018-06-27T15:19:55.000Z",
-                    ),
-                    ("bucket-1", "dir2/folder2/file2") => Dict(
-                        "Size" => "4",
-                        "LastModified" => "2018-06-27T15:19:55.000Z",
-                    ),
-                )
+                content = format_s3_objects([
+                    ("bucket-1", "dir1/folder1/file"),
+                    ("bucket-1", "dir1/file"),
+                    ("bucket-1", "dir2/folder2/file2"),
+                ])
                 changes = []
                 expected_changes = [
                     :copy => Dict(
@@ -424,20 +406,11 @@ end
             end
 
             @testset "Sync prefixes in different buckets" begin
-                content = Dict(
-                    ("bucket-1", "dir1/file") => Dict(
-                        "Size" => "12",
-                        "LastModified" => "2018-06-27T15:19:55.000Z",
-                    ),
-                    ("bucket-1", "dir1/folder1/file") => Dict(
-                        "Size" => "4",
-                        "LastModified" => "2018-06-27T15:19:55.000Z",
-                    ),
-                    ("bucket-2", "dir2/file2") => Dict(
-                        "Size" => "12",
-                        "LastModified" => "2018-06-27T15:19:55.000Z",
-                    ),
-                )
+                content = format_s3_objects([
+                    ("bucket-1", "dir1/file"),
+                    ("bucket-1", "dir1/folder1/file"),
+                    ("bucket-2", "dir2/file2"),
+                ])
                 changes = []
                 expected_changes = [
                     :copy => Dict(
@@ -466,28 +439,13 @@ end
             end
 
             @testset "Sync bucket to prefix" begin
-                content = Dict(
-                    ("bucket-1", "folder1/file3") => Dict(
-                        "Size" => "4",
-                        "LastModified" => "2018-06-27T15:19:55.000Z",
-                    ),
-                    ("bucket-1", "file1") => Dict(
-                        "Size" => "12",
-                        "LastModified" => "2018-06-27T15:19:55.000Z",
-                    ),
-                    ("bucket-1", "file2") => Dict(
-                        "Size" => "0",
-                        "LastModified" => "2018-06-27T15:19:55.000Z",
-                    ),
-                    ("bucket-2", "dir2/folder2/file3") => Dict(
-                        "Size" => "4",
-                        "LastModified" => "2018-06-27T15:19:55.000Z",
-                    ),
-                    ("bucket-2", "dir2/file2") => Dict(
-                        "Size" => "12",
-                        "LastModified" => "2018-06-27T15:19:55.000Z",
-                    ),
-                )
+                content = format_s3_objects([
+                    ("bucket-1", "folder1/file3") => Dict(),
+                    ("bucket-1", "file1") => Dict(),
+                    ("bucket-1", "file2") => Dict("Size" => "0"),
+                    ("bucket-2", "dir2/folder2/file3") => Dict(),
+                    ("bucket-2", "dir2/file2") => Dict("Size" => "12"),
+                ])
                 changes = []
                 expected_changes = [
                     :copy => Dict(
@@ -521,20 +479,11 @@ end
         end
 
         @testset "Sync local folder to s3 bucket" begin
-            content = OrderedDict(
-                ("bucket-1", "folder1/file3") => Dict(
-                    "Size" => "4",
-                    "LastModified" => "2018-06-27T15:19:55.000Z",
-                ),
-                ("bucket-1", "file1") => Dict(
-                    "Size" => "12",
-                    "LastModified" => "2018-06-27T15:19:55.000Z",
-                ),
-                ("bucket-1", "file2") => Dict(
-                    "Size" => "0",
-                    "LastModified" => "2018-06-27T15:19:55.000Z",
-                ),
-            )
+            content = format_s3_objects([
+                ("bucket-1", "folder1/file3"),
+                ("bucket-1", "file1"),
+                ("bucket-1", "file2"),
+            ])
             changes = []
             expected_changes = [
                 :put => Dict(
@@ -580,23 +529,11 @@ end
         end
 
         @testset "Sync s3 bucket to local folder" begin
-            content = OrderedDict(
-                ("bucket-1", "folder1/file3") => Dict(
-                    "Size" => "4",
-                    "LastModified" => "2018-06-27T15:19:55.000Z",
-                    "Content" => "Test",
-                ),
-                ("bucket-1", "file1") => Dict(
-                    "Size" => "12",
-                    "LastModified" => "2018-06-27T15:19:55.000Z",
-                    "Content" => "Hello World!"
-                ),
-                ("bucket-1", "file2") => Dict(
-                    "Size" => "0",
-                    "LastModified" => "2018-06-27T15:19:55.000Z",
-                    "Content" => "",
-                ),
-            )
+            content = format_s3_objects([
+                ("bucket-1", "folder1/file3") => Dict("Content" => "Test"),
+                ("bucket-1", "file1") => Dict("Content" => "Hello World!"),
+                ("bucket-1", "file2") => Dict("Content" => ""),
+            ])
 
             mktempdir() do folder
                 apply(s3_patches!(content)) do
