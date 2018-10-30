@@ -36,7 +36,17 @@ end
 
 function compare_dir(src_dir::AbstractPath, dest_dir::AbstractPath)
     @test isdir(dest_dir)
-    @test readdir(dest_dir) == readdir(src_dir)
+
+    src_contents = sort(list_files(src_dir))
+    dest_contents = sort(list_files(dest_dir))
+
+    src_keys = map(x -> sync_key(src_dir, x), src_contents)
+    dest_keys = map(x -> sync_key(dest_dir, x), dest_contents)
+    @test src_keys == dest_keys
+
+    for i in 1:length(src_contents)
+        compare(src_contents[i], dest_contents[i])
+    end
 end
 
 
@@ -219,7 +229,7 @@ end
             sync(src, dest)
 
             # Test directories are the same
-            @test readdir(dest) == readdir(src)
+            compare_dir(src, dest)
 
             # Get paths of new files
             dest_file = join(dest, "file1")
@@ -571,13 +581,10 @@ end
 
                     s3_objects = list_files(src)
 
-                     # Test directories are the same
-                    for s3_object in s3_objects
-                        dest_file = join(dest, sync_key(src, s3_object))
-                        compare(s3_object, dest_file)
-                    end
+                    # Test directories are the same
+                    compare_dir(src, dest)
 
-                     @testset "Sync modified dest file" begin
+                    @testset "Sync modified dest file" begin
                         # Modify a file in dest
                         s3_object = s3_objects[1]
                         file = join(dest, sync_key(src, s3_object))
@@ -594,7 +601,7 @@ end
                         # the result of an uploaded file always having a newer last_modified
                         # time.
 
-                       # Modify a file in dest
+                        # Modify a file in dest
                         s3_object = s3_objects[1]
                         file = join(dest, sync_key(src, s3_object))
                         write(file, "Hello World.")
@@ -718,16 +725,16 @@ end
                         end
                     end
 
-                    @testset "Two S3 directories" begin
+                    @testset "Sync S3 directories" begin
+
                         folder1 = "awstools/$test_run_id/folder1"
                         folder2 = "awstools/$test_run_id/folder2"
-                        dir1 = "s3://$bucket/$folder1/"
-                        dir2 = "s3://$bucket/$folder2/"
 
-                        src_dir = Path(dir1)
-                        dest_dir = Path(dir2)
+                        src_dir = Path("s3://$bucket/$folder1/")
+                        dest_dir = Path("s3://$bucket/$folder2/")
 
-                        # Delete any pre-existing objects in the s3 bucket directories
+                        # Directories should be empty, but just in case
+                        # delete any pre-existing objects in the s3 bucket directories
                         remove(src_dir; recursive=true)
                         remove(dest_dir; recursive=true)
 
@@ -742,55 +749,44 @@ end
                             s3_put(object["Bucket"], object["Key"], object["Content"])
                         end
 
-                        # Sync files
-                        sync(dir1, dir2)
+                        # Sync files passing in directories as strings
+                        sync(string(src_dir), string(dest_dir))
+
+                        src_files = list_files(src_dir)
+                        dest_files = list_files(dest_dir)
+
+                        # Test destination directory has expected files
+                        @test !isempty(dest_files)
+                        @test length(dest_files) == length(s3_objects)
 
                         # Test directories are the same
-                        dir1_files = list_files(src_dir)
-                        dir2_files = list_files(dest_dir)
+                        compare_dir(src_dir, dest_dir)
 
-                        src_file = dir1_files[1]
-                        dest_file = dir2_files[1]
-
-                        @test !isempty(dir2_files)
-
-                        @test length(dir2_files) == length(s3_objects)
-                        @test length(dir2_files) == length(dir1_files)
-
-                        for i in 1:length(dir1_files)
-                            file1 = dir1_files[i]
-                            key1 = sync_key(src_dir, file1)
-                            file2 = dir2_files[i]
-                            key2 = sync_key(dest_dir, file2)
-
-                            @test key1 == key2
-                            compare(file1, file2)
-                        end
+                        # Test readdir only lists files and "dirs" within this S3 "dir"
+                        @test readdir(dest_dir) == ["file1", "file2", "folder/"]
+                        @test readdir(Path("s3://$bucket/awstools/$test_run_id/")) == [
+                            "folder1/", "folder2/", "presign/"
+                        ]
+                        @test_throws ArgumentError readdir(
+                            Path("s3://$bucket/awstools/$test_run_id")
+                        )
 
                         @testset "Sync modified dest file" begin
                             # Modify a file in dest
                             s3_put(
-                                dir2_files[1].bucket,
-                                dir2_files[1].key,
+                                dest_files[1].bucket,
+                                dest_files[1].key,
                                 "Modified in dest.",
                             )
 
                             # Syncing overwrites the newer file in dest because it is of
                             # a different size
-                            sync(dir1, dir2)
+                            sync(src_dir, dest_dir)
 
-                            dir1_files = list_files(src_dir)
-                            dir2_files = list_files(dest_dir)
+                            # Test directories are the same
+                            compare_dir(src_dir, dest_dir)
 
-                            file1 = dir1_files[1]
-                            key1 = sync_key(src_dir, file1)
-                            file2 = dir2_files[1]
-                            key2 = sync_key(dest_dir, file2)
-
-                            @test key1 == key2
-                            compare(file1, file2)
-
-                            @test read(dir2_files[1], String) == s3_objects[1]["Content"]
+                            @test read(dest_files[1], String) == s3_objects[1]["Content"]
                         end
 
                         @testset "Sync modified src file" begin
@@ -803,92 +799,86 @@ end
                             )
 
                             # Test that syncing overwrites the modified file in dest
-                            sync(dir1, dir2)
+                            sync(src_dir, dest_dir)
 
-                            dir1_files = list_files(src_dir)
-                            dir2_files = list_files(dest_dir)
+                            # Test directories are the same
+                            compare_dir(src_dir, dest_dir)
 
-                            file1 = dir1_files[1]
-                            key1 = sync_key(src_dir, file1)
-                            file2 = dir2_files[1]
-                            key2 = sync_key(dest_dir, file2)
-
-                            @test key1 == key2
-                            compare(file1, file2)
-
-                            @test read(dir2_files[1], String) == s3_objects[1]["Content"]
+                            @test read(dest_files[1], String) == s3_objects[1]["Content"]
                         end
 
                         @testset "Sync newer file in dest" begin
-                            # This is the case because a newer file of the same size is
-                            # usually the result of an uploaded file always having a newer
-                            #last_modified time.
-
                             # Modify a file in dest
                             s3_put(
-                                dir2_files[1].bucket,
-                                dir2_files[1].key,
+                                dest_files[1].bucket,
+                                dest_files[1].key,
                                 "Modified in dest",
                             )
 
                             # Test that syncing doesn't overwrite the newer file in dest
-                            sync(dir1, dir2)
+                            # This is the case because a newer file of the same size is
+                            # usually the result of an uploaded file always having a newer
+                            # last_modified time.
+                            sync(src_dir, dest_dir)
 
-                            dir2_files = list_files(dest_dir)
-                            @test read(dir2_files[1], String) != s3_objects[1]["Content"]
+                            file_contents = read(dest_files[1], String)
+                            @test file_contents != s3_objects[1]["Content"]
+                            @test file_contents ==  "Modified in dest"
                         end
 
                         @testset "Sync s3 bucket with object prefix" begin
                             file = "s3://$bucket/$(s3_objects[1]["Key"])"
 
-                            @test_throws ArgumentError sync(file, dir2)
+                            @test_throws ArgumentError sync(file, dest_dir)
                         end
 
-                        remove(dir1_files[1])
+                        remove(src_files[1])
 
                         @testset "Sync deleted file with no delete flag" begin
-                            sync(dir1, dir2)
+                            sync(src_dir, dest_dir)
 
-                            dir1_files = list_files(src_dir)
-                            dir2_files = list_files(dest_dir)
+                            src_files = list_files(src_dir)
+                            dest_files = list_files(dest_dir)
 
-                            @test length(dir2_files) == length(dir1_files) + 1
+                            @test length(dest_files) == length(src_files) + 1
                         end
 
                         @testset "Sync deleted files with delete flag" begin
                             # Test that syncing deletes the file in dest
-                            sync(dir1, dir2, delete=true)
+                            sync(src_dir, dest_dir; delete=true)
 
-                            dir1_files = list_files(src_dir)
-                            dir2_files = list_files(dest_dir)
-                            @test length(dir2_files) == length(dir1_files)
+                            src_files = list_files(src_dir)
+                            dest_files = list_files(dest_dir)
+                            @test length(dest_files) == length(src_files)
                         end
 
                         @testset "Sync files" begin
-                            write(src_file, "Test")
+                            src_file = S3Path(bucket, "$folder1/file")
+                            dest_file = S3Path(bucket, "$folder2/file")
 
+                            # Modify file in src dir
+                            write(src_file, "Test modified file in source")
+
+                            # Test syncing individual files instead of directories
                             sync(src_file, dest_file)
 
-                            compare(list_files(src_dir)[1], list_files(dest_dir)[1])
+                            # Test directories are the same
+                            compare_dir(src_dir, dest_dir)
+
+                            # Test destination file was modifies
+                            @test read(dest_file, String) == "Test modified file in source"
                         end
 
                         @testset "Sync empty directory" begin
                             remove(src_dir; recursive=true)
 
-                            sync(dir1, dir2, delete=true)
+                            sync(src_dir, dest_dir; delete=true)
 
-                            dir1_files = list_files(src_dir)
-                            dir2_files = list_files(dest_dir)
+                            src_files = list_files(src_dir)
+                            dest_files = list_files(dest_dir)
 
-                            @test isempty(dir2_files)
-
-                            sync(dir1, dir2)
-
-                            dir1_files = list_files(src_dir)
-                            dir2_files = list_files(dest_dir)
-
-                            @test isempty(dir1_files)
-                            @test isempty(dir2_files)
+                            @test isempty(src_files)
+                            @test isempty(dest_files)
                         end
 
                         # Clean up any files left in the test directories
