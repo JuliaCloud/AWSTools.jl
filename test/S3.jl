@@ -502,29 +502,26 @@ end
                 :delete => ("bucket-1", "file2"),
             ]
 
-            apply(s3_patches!(content, changes)) do
-                src = mktempdir()
+            mktempdir() do src
+                apply(s3_patches!(content, changes)) do
+                    src_file = "$src/file"
+                    write(src_file, "Hello World!")
 
-                src_file = "$src/file"
-                # touch(src_file)
-                write(src_file, "Hello World!")
+                    src_folder = "$src/folder"
+                    mkdir(src_folder)
+                    src_folder_file = "$src_folder/file"
+                    touch(src_folder_file) # empty file
 
-                src_folder = "$src/folder"
-                mkdir(src_folder)
-                src_folder_file = "$src_folder/file"
-                touch(src_folder_file) # empty file
+                    sync(src, "s3://bucket-1/")
+                    @test changes == expected_changes
+                    empty!(changes)
 
-                sync(src, "s3://bucket-1/")
-                @test changes == expected_changes
-                empty!(changes)
-
-                # S3 directory was not empty initially, so this will delete all
-                # its original files that are not also in src
-                sync(src, "s3://bucket-1/", delete=true)
-                @test changes == expected_delete
-                empty!(changes)
-
-                remove(Path(src); recursive=true)
+                    # S3 directory was not empty initially, so this will delete all
+                    # its original files that are not also in src
+                    sync(src, "s3://bucket-1/", delete=true)
+                    @test changes == expected_delete
+                    empty!(changes)
+                end
             end
         end
 
