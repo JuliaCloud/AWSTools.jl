@@ -37,8 +37,8 @@ end
 function compare_dir(src_dir::AbstractPath, dest_dir::AbstractPath)
     @test isdir(dest_dir)
 
-    src_contents = sort(list_files(src_dir))
-    dest_contents = sort(list_files(dest_dir))
+    src_contents = sort!(list_files(src_dir))
+    dest_contents = sort!(list_files(dest_dir))
 
     src_keys = map(x -> sync_key(src_dir, x), src_contents)
     dest_keys = map(x -> sync_key(dest_dir, x), dest_contents)
