@@ -621,7 +621,7 @@ end
                 test_run_id = string(uuid4())
 
                 try
-                    @testset "Upload to s3" begin
+                    @testset "Upload to S3" begin
                         dest = Path("s3://$bucket/awstools/$test_run_id/folder3/testfile")
 
                         try
@@ -630,11 +630,15 @@ end
                                 close(stream)
 
                                 @test list_files(dest) == []
+                                @test !isfile(dest)
+                                @test !isdir(parent(dest))
 
                                 uploaded_file = upload(Path(src), dest)
                                 @test isa(uploaded_file, S3Path)
 
                                 @test list_files(dest) == [dest]
+                                @test isfile(dest)
+                                @test isdir(parent(dest))
                                 @test read(dest, String) == "Local file src"
                             end
                         finally
@@ -642,7 +646,7 @@ end
                         end
                     end
 
-                    @testset "Download from s3" begin
+                    @testset "Download from S3" begin
                         src = Path("s3://$bucket/awstools/$test_run_id/folder4/testfile")
 
                         try
