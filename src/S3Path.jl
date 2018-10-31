@@ -1,6 +1,5 @@
 using Compat.Dates
 
-using Base: @deprecate
 using Compat: replace, split
 
 """
@@ -97,7 +96,6 @@ end
 Base.String(object::S3Path) = joinpath(parts(object)...)
 FilePathsBase.parts(object::S3Path) = object.parts
 root(path::S3Path) = ""
-drive(path::S3Path) = ("s3://", replace(path, r"^s3://" => s""))
 
 # S3Path specific methods
 Base.show(io::IO, object::S3Path) = print(io, "p\"$(String(object))\"")
@@ -308,8 +306,11 @@ function presign(path::S3Path, duration::Period=Hour(1))
     AWSS3.s3_sign_url(path.bucket, path.key, Dates.value(Second(duration)))
 end
 
-# BEGIN AWSTools.S3 0.3 deprecations
+# BEGIN AWSTools.S3 0.7 deprecations
 
-@deprecate S3Results S3Path
+function drive(path::S3Path)
+    Base.depwarn("`drive(::S3Path)` is deprecated and will be removed in the future.")
+    ("s3://", replace(path, r"^s3://" => s""))
+end
 
-# END AWSTools.S3 0.3 deprecations
+# END AWSTools.S3 0.7 deprecations
