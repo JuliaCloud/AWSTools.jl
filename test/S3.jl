@@ -51,13 +51,13 @@ end
                 # Download to local file
                 s3_object = S3Path("bucket", "test_file")
                 localfile = Path((tmp_dir, "local_file"))
-                downloaded_file = download(s3_object, localfile)
+                downloaded_file = download(s3_object, localfile::AbstractPath)
                 @test readdir(tmp_dir) == ["local_file"]
                 @test isa(downloaded_file, AbstractPath)
 
                 # Download to directory
                 s3_object = S3Path("bucket", "test_file")
-                downloaded_file = download(s3_object, Path(tmp_dir))
+                downloaded_file = download(s3_object, tmp_dir::AbstractString)
                 @test readdir(tmp_dir) == ["local_file", "test_file"]
                 @test isa(downloaded_file, AbstractPath)
             end

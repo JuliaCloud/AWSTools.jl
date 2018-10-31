@@ -289,8 +289,9 @@ function Base.copy(
     return dest
 end
 
-Base.download(src::S3Path; kwargs...) = copy(src, Path(pwd()); kwargs...)
 Base.download(src::S3Path, dest::AbstractPath; kwargs...) = copy(src, dest; kwargs...)
+Base.download(src::S3Path, dest::AbstractString; kwargs...) = download(src, Path(dest); kwargs...)
+Base.download(src::S3Path; kwargs...) = download(src, Path(pwd()); kwargs...)
 
 """
     upload(src::AbstractPath, dest::S3Path)
