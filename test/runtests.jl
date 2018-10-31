@@ -3,9 +3,11 @@ Mocking.enable(force=true)
 
 using AWSTools
 using Compat: AbstractDict, occursin
+using Compat.Dates
 using Compat.Test
 using Memento
 using DataStructures: OrderedDict
+using HTTP
 
 import AWSTools.Docker
 using AWSTools: account_id

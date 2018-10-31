@@ -188,6 +188,15 @@ end
         @test parts(joined_path) == pieces
     end
 
+    @testset "presign" begin
+        @testset "minimum period" begin
+            @test_throws InexactError AWSTools.S3.presign(
+                S3Path("s3://bucket/file"),
+                Dates.Millisecond(999),
+            )
+        end
+    end
+
     @testset "Syncing" begin
         @testset "Sync two local directories" begin
             # Create files to sync
@@ -675,6 +684,33 @@ end
 
                         finally
                             remove(src; recursive=true)
+                        end
+                    end
+
+                    @testset "Download via presign" begin
+                        src = Path("s3://$bucket/awstools/$test_run_id/presign/file")
+                        content = "presigned content"
+                        s3_put(src.bucket, src.key, content)
+
+                        @testset "file" begin
+                            url = AWSTools.S3.presign(src, Dates.Minute(1))
+                            r = HTTP.get(url)
+                            @test String(r.body) == content
+                        end
+
+                        @testset "directory" begin
+                            url = AWSTools.S3.presign(parent(src), Dates.Minute(1))
+                            r = HTTP.get(url, status_exception=false)
+                            @test r.status == 404
+                            @test occursin("The specified key does not exist.", String(r.body))
+                        end
+
+                        @testset "expired" begin
+                            url = AWSTools.S3.presign(src, Dates.Second(1))
+                            sleep(2)
+                            r = HTTP.get(url, status_exception=false)
+                            @test r.status == 403
+                            @test occursin("Request has expired", String(r.body))
                         end
                     end
 
