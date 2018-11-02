@@ -17,11 +17,29 @@ const ONLINE = strip.(split(get(ENV, "ONLINE", ""), r"\s*,\s*"))
 const AWS_STACKNAME = get(ENV, "AWS_STACKNAME", "")
 
 # Run the online S3 tests on the bucket specified
-const AWS_BUCKET = get(
-    ENV,
-    "AWS_BUCKET",
-    isempty(AWS_STACKNAME) ? "" : replace(stack_output(AWS_STACKNAME)["TestBucketArn"], r"^arn:aws:s3:::", s"")
-)
+const TEST_BUCKET_DIR = let
+    if haskey(ENV, "TEST_BUCKET_DIR")
+        ENV["TEST_BUCKET_DIR"]
+    elseif !isempty(AWS_STACKNAME)
+        output = stack_output(AWS_STACKNAME)
+
+        bucket_dir = if haskey(output, "TestBucketDir")
+            output["TestBucketDir"]
+        else
+            # Deprecation added in AWSTools v0.7.0
+            Base.depwarn(string(
+                "Stack \"$AWS_STACKNAME\" contains deprecated output \"TestBucketArn\". ",
+                "Please update the CloudFormation template to use \"TestBucketDir\" ",
+                "instead.",
+            ), :TEST_BUCKET_DIR)
+            replace(output["TestBucketArn"], r"^arn:aws:s3:::" => s"")  # Deprecated
+        end
+
+        "s3://$bucket_dir"
+    else
+        nothing
+    end
+end
 
 
 function compare(src_file::AbstractPath, dest_file::AbstractPath)
@@ -37,6 +55,16 @@ end
 function compare_dir(src_dir::AbstractPath, dest_dir::AbstractPath)
     @test isdir(dest_dir)
     @test readdir(dest_dir) == readdir(src_dir)
+end
+
+function bucket_and_key(s3_path::AbstractString)
+    m = match(r"^s3://(?<bucket>[^/]++)/?+(?<key>.*)$", s3_path)
+
+    if m !== nothing
+        return m[:bucket], m[:key]
+    else
+        throw(ArgumentError("String is not an S3 path: \"$s3_path\""))
+    end
 end
 
 
@@ -619,19 +647,20 @@ end
                 @info "Running ONLINE S3 tests"
 
                 # Create bucket for tests
-                if isempty(AWS_BUCKET)
+                s3_bucket_dir = if TEST_BUCKET_DIR === nothing
                     bucket = string("awstools-s3-test-temp-", uuid4())
                     @info "Creating S3 bucket $bucket"
                     s3_create_bucket(bucket)
+                    "s3://$bucket"
                 else
-                    bucket = AWS_BUCKET
+                    rstrip(TEST_BUCKET_DIR, '/')
                 end
 
                 test_run_id = string(uuid4())
 
                 try
                     @testset "Upload to S3" begin
-                        dest = Path("s3://$bucket/awstools/$test_run_id/folder3/testfile")
+                        dest = Path("$s3_bucket_dir/awstools/$test_run_id/folder3/testfile")
 
                         try
                             mktemp() do src, stream
@@ -656,7 +685,7 @@ end
                     end
 
                     @testset "Download from S3" begin
-                        src = Path("s3://$bucket/awstools/$test_run_id/folder4/testfile")
+                        src = Path("$s3_bucket_dir/awstools/$test_run_id/folder4/testfile")
 
                         try
                             s3_put(src.bucket, src.key, "Remote content")
@@ -692,7 +721,7 @@ end
                     end
 
                     @testset "Download via presign" begin
-                        src = Path("s3://$bucket/awstools/$test_run_id/presign/file")
+                        src = Path("$s3_bucket_dir/awstools/$test_run_id/presign/file")
                         content = "presigned content"
                         s3_put(src.bucket, src.key, content)
 
@@ -719,10 +748,12 @@ end
                     end
 
                     @testset "Two S3 directories" begin
+                        bucket, key_prefix = bucket_and_key(s3_bucket_dir)
+
                         folder1 = "awstools/$test_run_id/folder1"
                         folder2 = "awstools/$test_run_id/folder2"
-                        dir1 = "s3://$bucket/$folder1/"
-                        dir2 = "s3://$bucket/$folder2/"
+                        dir1 = "$s3_bucket_dir/$folder1/"
+                        dir2 = "$s3_bucket_dir/$folder2/"
 
                         src_dir = Path(dir1)
                         dest_dir = Path(dir2)
@@ -731,10 +762,23 @@ end
                         remove(src_dir; recursive=true)
                         remove(dest_dir; recursive=true)
 
+                        # Note: using `lstrip` for when `key_prefix` is empty
                         s3_objects = [
-                            Dict("Bucket" => bucket, "Key" => "$folder1/file1", "Content" => "Hello World!"),
-                            Dict("Bucket" => bucket, "Key" => "$folder1/file2", "Content" => ""),
-                            Dict("Bucket" => bucket, "Key" => "$folder1/folder/file3", "Content" => "Test"),
+                            Dict(
+                                "Bucket" => bucket,
+                                "Key" => lstrip("$key_prefix/$folder1/file1", '/'),
+                                "Content" => "Hello World!",
+                            ),
+                            Dict(
+                                "Bucket" => bucket,
+                                "Key" => lstrip("$key_prefix/$folder1/file2", '/'),
+                                "Content" => "",
+                            ),
+                            Dict(
+                                "Bucket" => bucket,
+                                "Key" => lstrip("$key_prefix/$folder1/folder/file3", '/'),
+                                "Content" => "Test",
+                            ),
                         ]
 
                         # Set up the source s3 directory
@@ -839,8 +883,10 @@ end
                         end
 
                         @testset "Sync s3 bucket with object prefix" begin
-                            file = "s3://$bucket/$(s3_objects[1]["Key"])"
+                            obj = s3_objects[1]
+                            file = "s3://" * join([obj["Bucket"], obj["Key"]], '/')
 
+                            @test startswith(file, "s3://")
                             @test_throws ArgumentError sync(file, dir2)
                         end
 
@@ -899,18 +945,20 @@ end
                 finally
 
                     # Delete bucket if it was explicitly created
-                    if isempty(AWS_BUCKET)
+                    if TEST_BUCKET_DIR === nothing
+                        bucket, key = bucket_and_key(s3_bucket_dir)
                         @info "Deleting S3 bucket $bucket"
-                        remove(S3Path("s3://$bucket"); recursive=true)
+                        remove(S3Path(bucket); recursive=true)
                     end
                 end
             end
         else
             @warn (
-                "Skipping AWSTools.S3 ONLINE tests. Set `ENV[\"ONLINE\"] = \"S3\"` to run." *
-                "\nCan also optionally specify a test bucket name `ENV[\"AWS_BUCKET\"] = " *
-                "\"bucket-name\"`. \nIf `AWS_BUCKET` is not specified, a temporary bucket " *
-                "will be created, used, and then deleted."
+                "Skipping AWSTools.S3 ONLINE tests. Set `ENV[\"ONLINE\"] = \"S3\"` to run.\n" *
+                "Can also optionally specify a test bucket name " *
+                "`ENV[\"TEST_BUCKET_DIR\"] = \"s3://bucket/dir/\"`.\n" *
+                "If `TEST_BUCKET_DIR` is not specified, a temporary bucket will be " *
+                "created, used, and then deleted."
             )
         end
     end
