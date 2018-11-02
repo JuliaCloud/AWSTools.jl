@@ -12,7 +12,7 @@ AWSTools provides several helper methods for working with AWSSDK.jl from julia.
 julia> Pkg.add("AWSTools.jl")
 ```
 
-You will also need to have the proper IAM permissions for the actions you wish to perform. 
+You will also need to have the proper IAM permissions for the actions you wish to perform.
 Currently the permissions AWSTools requires (if run in it's entirety) are:
   - cloudformation:DescribeStacks
   - ecr:GetAuthorizationToken
@@ -82,7 +82,7 @@ AWSTools.S3.sync(::FilePathsBase.AbstractPath, ::FilePathsBase.AbstractPath)
 AWSTools.S3.upload
 ```
 
-#### Internal use 
+#### Internal use
 
 ```@docs
 AWSTools.S3.list_files(::FilePathsBase.AbstractPath)

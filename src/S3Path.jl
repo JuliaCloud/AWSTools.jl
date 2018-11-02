@@ -1,6 +1,6 @@
 using Compat.Dates
 
-using Compat: replace, split
+using Compat: replace, split, occursin
 
 """
     S3Path <: AbstractPath
@@ -120,8 +120,10 @@ function Base.isdir(path::S3Path)
     length(objects) > 0
 end
 
-Base.isfile(path::S3Path) = @mock s3_exists(default_aws_config(), path.bucket, path.key)
-FilePathsBase.exists(object::S3Path) = length(list_files(object)) > 0
+Base.isfile(path::S3Path) = exists(path)
+function FilePathsBase.exists(object::S3Path)
+    @mock s3_exists(default_aws_config(), object.bucket, object.key)
+end
 
 function FilePathsBase.parents(path::S3Path)
     if hasparent(path)
@@ -148,6 +150,20 @@ function Base.join(root::S3Path, pieces::Union{AbstractPath, AbstractString}...)
     end
 
     return S3Path(Tuple(all_parts))
+end
+
+function Base.readdir(path::S3Path; config::AWSConfig=default_aws_config())
+    if isdirpath(path)
+        # Only list the files and "dirs" within this S3 "dir"
+        all_items = list_files(path; config=config)
+
+        # Only list the basename and not the full key
+        return sort!(collect(Set(
+            match(r"^([^/]+/?)", sync_key(path, p))[1] for p in all_items
+        )))
+    else
+        throw(ArgumentError("\"$path\" is not a directory"))
+    end
 end
 
 function Base.read(path::S3Path, ::Type{String}; config::AWSConfig=default_aws_config())
