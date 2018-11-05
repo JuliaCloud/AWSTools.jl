@@ -19,7 +19,11 @@ const AWS_STACKNAME = get(ENV, "AWS_STACKNAME", "")
 # Run the online S3 tests on the bucket specified
 const TEST_BUCKET_DIR = let
     if haskey(ENV, "TEST_BUCKET_DIR")
-        ENV["TEST_BUCKET_DIR"]
+        if startswith(ENV["TEST_BUCKET_DIR"], "s3://")
+            ENV["TEST_BUCKET_DIR"]
+        else
+            error("`TEST_BUCKET_DIR` must include the S3 prefix \"s3://\"")
+        end
     elseif !isempty(AWS_STACKNAME)
         output = stack_output(AWS_STACKNAME)
 
@@ -664,10 +668,11 @@ end
                 end
 
                 test_run_id = string(uuid4())
+                s3_test_prefix = "$s3_bucket_dir/awstools/$test_run_id"
 
                 try
                     @testset "Upload to S3" begin
-                        dest = Path("$s3_bucket_dir/awstools/$test_run_id/folder3/testfile")
+                        dest = Path("$s3_test_prefix/folder3/testfile")
 
                         try
                             mktemp() do src, stream
@@ -692,7 +697,7 @@ end
                     end
 
                     @testset "Download from S3" begin
-                        src = Path("$s3_bucket_dir/awstools/$test_run_id/folder4/testfile")
+                        src = Path("$s3_test_prefix/folder4/testfile")
 
                         try
                             s3_put(src.bucket, src.key, "Remote content")
@@ -728,7 +733,7 @@ end
                     end
 
                     @testset "Download via presign" begin
-                        src = Path("$s3_bucket_dir/awstools/$test_run_id/presign/file")
+                        src = Path("$s3_test_prefix/presign/file")
                         content = "presigned content"
                         s3_put(src.bucket, src.key, content)
 
@@ -755,13 +760,10 @@ end
                     end
 
                     @testset "Sync S3 directories" begin
-                        bucket, key_prefix = bucket_and_key(s3_bucket_dir)
+                        bucket, key_prefix = bucket_and_key(s3_test_prefix)
 
-                        folder1 = "awstools/$test_run_id/folder1"
-                        folder2 = "awstools/$test_run_id/folder2"
-
-                        src_dir = Path("$s3_bucket_dir/$folder1/")
-                        dest_dir = Path("$s3_bucket_dir/$folder2/")
+                        src_dir = Path("$s3_test_prefix/folder1/")
+                        dest_dir = Path("$s3_test_prefix/folder2/")
 
                         # Directories should be empty, but just in case
                         # delete any pre-existing objects in the s3 bucket directories
@@ -772,17 +774,17 @@ end
                         s3_objects = [
                             Dict(
                                 "Bucket" => bucket,
-                                "Key" => lstrip("$key_prefix/$folder1/file1", '/'),
+                                "Key" => lstrip("$key_prefix/folder1/file1", '/'),
                                 "Content" => "Hello World!",
                             ),
                             Dict(
                                 "Bucket" => bucket,
-                                "Key" => lstrip("$key_prefix/$folder1/file2", '/'),
+                                "Key" => lstrip("$key_prefix/folder1/file2", '/'),
                                 "Content" => "",
                             ),
                             Dict(
                                 "Bucket" => bucket,
-                                "Key" => lstrip("$key_prefix/$folder1/folder/file3", '/'),
+                                "Key" => lstrip("$key_prefix/folder1/folder/file3", '/'),
                                 "Content" => "Test",
                             ),
                         ]
@@ -807,11 +809,13 @@ end
 
                         # Test readdir only lists files and "dirs" within this S3 "dir"
                         @test readdir(dest_dir) == ["file1", "file2", "folder/"]
-                        @test readdir(Path("s3://$bucket/awstools/$test_run_id/")) == [
+                        @test readdir(Path("$s3_test_prefix/")) == [
                             "folder1/", "folder2/", "presign/"
                         ]
+                        # Not including the ending `/` means this refers to an object and
+                        # not a directory prefix in S3
                         @test_throws ArgumentError readdir(
-                            Path("s3://$bucket/awstools/$test_run_id")
+                            Path(s3_test_prefix)
                         )
 
                         @testset "Sync modified dest file" begin
@@ -898,8 +902,8 @@ end
                         end
 
                         @testset "Sync files" begin
-                            src_file = S3Path(bucket, "$folder1/file")
-                            dest_file = S3Path(bucket, "$folder2/file")
+                            src_file = S3Path("$s3_test_prefix/folder1/file")
+                            dest_file = S3Path("$s3_test_prefix/folder2/file")
 
                             # Modify file in src dir
                             write(src_file, "Test modified file in source")
@@ -925,13 +929,11 @@ end
                             @test isempty(src_files)
                             @test isempty(dest_files)
                         end
-
-                        # Clean up any files left in the test directories
-                        remove(src_dir; recursive=true)
-                        remove(dest_dir; recursive=true)
                     end
 
                 finally
+                    # Clean up any files left in the test directory
+                    remove(Path("$s3_test_prefix/"); recursive=true)
 
                     # Delete bucket if it was explicitly created
                     if TEST_BUCKET_DIR === nothing
