@@ -115,12 +115,13 @@ end
         path2 = S3Path("$bucket", "$key")
         path3 = S3Path(("s3://$bucket", "$key"))
         path4 = S3Path("$bucket/$key")
+        path5 = S3Path("s3://$bucket", "$key")
 
         @test path1.bucket == "$bucket"
         @test path1.key == "$key"
         @test parts(path1) == ("s3://$bucket", "$key")
 
-        @test path1 == path2 == path3 == path4
+        @test path1 == path2 == path3 == path4 == path5
 
         @test !isdirpath(path1)
 

@@ -75,6 +75,8 @@ function S3Path(
     size::Integer=0,
     last_modified::DateTime=DateTime(0)
 )
+    startswith(bucket, "s3://") && (bucket = bucket[6:end])
+    
     key_pieces = split(key, "/"; keepempty=false)
 
     # Retain ending `/` info to differentiate s3 folders from objects
