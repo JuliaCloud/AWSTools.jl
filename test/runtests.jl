@@ -70,6 +70,22 @@ end
         end
     end
 
+
+    @testset "stack_description throttling" begin
+        allow = [1, 3, 5, 7, 8, 11, 13, 14, 15, 16]
+        apply(throttle_patch(allow)) do
+            for i in 1:10
+                resp = stack_description("stackname")
+                @test resp == Dict(
+                    "StackId" => "Stack Id",
+                    "StackName" => "Stack Name",
+                    "Description" => "Stack Description",
+                    "ThrottleCount" => "$(allow[i])",
+                )
+            end
+        end
+    end
+
     @testset "EC2" begin
         @testset "instance_availability_zone" begin
             apply(instance_availability_zone_patch) do

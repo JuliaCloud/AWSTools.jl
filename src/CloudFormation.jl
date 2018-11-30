@@ -19,6 +19,14 @@ export stack_description, stack_output
 
 describe_stacks(config; kwargs...) = cloudformation(config, "DescribeStacks"; kwargs...)
 
+
+const _NRETRIES = 3
+# for APIs we don't want to hammer
+function minimal_delays(; kwargs...)
+    return ExponentialBackOff(; n=_NRETRIES, first_delay=0.1, max_delay=60, kwargs...)
+end
+
+
 """
     stack_description(stack_name::AbstractString) -> AbstractDict
 
@@ -46,7 +54,7 @@ function stack_description(
         return (s, false)
     end
 
-    f = retry(check=retry_cond) do
+    f = retry(delays=minimal_delays(), check=retry_cond) do
         @mock describe_stacks(config, StackName=stack_name)
     end
 
