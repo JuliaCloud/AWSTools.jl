@@ -30,6 +30,7 @@ get_authorization_token_patch = @patch function get_authorization_token(config::
     )
 end
 
+
 describe_stacks_patch = @patch function describe_stacks(args...; kwargs...)
     responses = Dict(
        Dict(:StackName => "stackname") =>
@@ -113,6 +114,47 @@ describe_stacks_patch = @patch function describe_stacks(args...; kwargs...)
     )
 
     return responses[Dict{Symbol, String}(kwargs)]
+end
+
+
+function throttle_patch(allow)
+    describe_stacks_throttle_count = 0
+    @patch function describe_stacks(args...; kwargs...)
+        describe_stacks_throttle_count += 1
+        if !(describe_stacks_throttle_count in allow)
+            error_message = """
+                <ErrorResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+                    <Error>
+                        <Type>Sender</Type>
+                        <Code>Throttling</Code>
+                        <Message>Rate exceeded</Message>
+                    </Error>
+                    <RequestId>d0c477ac-f267-11e8-9d2b-93e3aa6368c5</RequestId>
+                </ErrorResponse>
+                """
+            http_error = HTTP.ExceptionRequest.StatusError(400, HTTP.Messages.Response(400, error_message))
+            throw(AWSException(http_error))
+        end
+        responses = Dict(
+           Dict(:StackName => "stackname") =>
+            """
+            <DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+              <DescribeStacksResult>
+                  <Stacks>
+                    <member>
+                      <StackId>Stack Id</StackId>
+                      <StackName>Stack Name</StackName>
+                      <Description>Stack Description</Description>
+                      <ThrottleCount>$describe_stacks_throttle_count</ThrottleCount>
+                    </member>
+                  </Stacks>
+              </DescribeStacksResult>
+            </DescribeStacksResponse>
+            """,
+        )
+
+        return responses[Dict{Symbol, String}(kwargs)]
+    end
 end
 
 
