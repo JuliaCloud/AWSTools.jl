@@ -169,19 +169,19 @@ function sync(
             )
         end
 
-        for key in to_sync
+        @sync for key in to_sync
             curr_src = src_files[key]
             curr_dest = join(dest, sync_key(src, src_files[key]))
 
             # Copy src file to the destination
-            sync_path(curr_src, curr_dest; config=config)
+            @async sync_path(curr_src, curr_dest; config=config)
         end
 
         # If delete is true, delete the files that exist in the dest but not the src
         if delete
             to_delete = setdiff(dest_keys, src_keys)
 
-            for key in to_delete
+            @sync for key in to_delete
                 curr_path = dest_files[key]
                 debug(
                     logger,
@@ -190,10 +190,10 @@ function sync(
                 )
 
                 if isa(curr_path, S3Path)
-                    remove(curr_path; config=config)
+                    @async remove(curr_path; config=config)
                 else
                     info(logger, "delete: $curr_path")
-                    remove(curr_path)
+                    @async remove(curr_path)
                 end
             end
             # Clean up empty folders on local file system
