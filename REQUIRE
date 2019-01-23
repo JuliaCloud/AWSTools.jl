@@ -1,10 +1,10 @@
 julia 0.7
 AWSCore 0.3
 AWSS3
-DataStructures 0.2.9
 FilePathsBase 0.4.0
 MbedTLS
 Memento 0.7.0
 Mocking 0.5.2
+OrderedCollections
 Retry 0.2
 XMLDict 0.1.3

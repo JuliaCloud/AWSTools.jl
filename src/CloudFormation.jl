@@ -2,7 +2,7 @@ module CloudFormation
 
 using AWSCore
 using AWSCore.Services: cloudformation
-using DataStructures: OrderedDict
+using OrderedCollections: OrderedDict
 using MbedTLS: MbedException
 using Memento
 using Mocking

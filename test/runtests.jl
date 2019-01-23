@@ -3,9 +3,9 @@ Mocking.enable(force=true)
 
 using AWSTools
 using Dates
-using DataStructures: OrderedDict
 using HTTP
 using Memento
+using OrderedCollections: OrderedDict
 using Test
 
 import AWSTools.Docker
