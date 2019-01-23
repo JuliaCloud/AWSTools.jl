@@ -1,8 +1,7 @@
 stages:
   - test
   - online-test
-  - coverage
-  - documentation
+  - teardown
 
 # Disable GitLab CI's default cache policy of "pull-push"
 # https://docs.gitlab.com/ee/ci/yaml/#cache-policy
@@ -10,26 +9,12 @@ stages:
 cache: {}
 
 include:
-  - https://gitlab.invenia.ca/infrastructure/gitlab-ci-helper/raw/master/gitlab-templates/test_templates.yml
-  - https://gitlab.invenia.ca/infrastructure/gitlab-ci-helper/raw/master/gitlab-templates/coverage.yml
-  - https://gitlab.invenia.ca/infrastructure/gitlab-ci-helper/raw/master/gitlab-templates/documentation.yml
+  - https://gitlab.invenia.ca/infrastructure/gitlab-ci-helper/raw/master/templates/hidden-jobs.yml
+  - https://gitlab.invenia.ca/infrastructure/gitlab-ci-helper/raw/master/templates/teardown.yml
 
 variables:
-  JULIA_IMAGE: 468665244580.dkr.ecr.us-east-1.amazonaws.com/julia-gitlab-ci:0.6
+  JULIA_IMAGE: 468665244580.dkr.ecr.us-east-1.amazonaws.com/julia-gitlab-ci:1.0
   ONLINE: ""
-
-"0.6 (Mac)":
-  tags:
-    - mac
-    - shell-ci
-  extends: .test_shell_0_6
-
-"0.6 (Linux, 64-bit)":
-  tags:
-    - linux
-    - 64-bit
-    - docker-ci
-  extends: .test_docker
 
 "1.0 (Mac)":
   tags:
@@ -41,9 +26,21 @@ variables:
   tags:
     - linux
     - 64-bit
+    - docker-ci
+  extends: .test_docker  # Version determined by JULIA_IMAGE
+
+"1.1 (Mac)":
+  tags:
+    - mac
     - shell-ci
-    - debian
-  extends: .test_shell_1_0
+  extends: .test_shell_1_1
+
+"1.1 (Linux, 64-bit)":
+  tags:
+    - linux
+    - 64-bit
+    - shell-ci
+  extends: .test_shell_1_1
 
 "Nightly (Mac)":
   tags:
@@ -73,4 +70,4 @@ variables:
     - unset SSL_CERT_DIR  # https://github.com/JuliaLang/julia/issues/20439
     - ./julia-ci test
     - ./julia-ci coverage
-  extends: .test_shell_0_6
+  extends: .test_shell_1_0

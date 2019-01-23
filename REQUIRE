@@ -1,4 +1,4 @@
-julia 0.6
+julia 0.7
 AWSCore 0.3
 AWSS3
 Compat 1.0.0
