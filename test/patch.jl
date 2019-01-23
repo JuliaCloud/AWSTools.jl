@@ -1,7 +1,6 @@
-using Base: CmdRedirect
 using AWSCore: AWSConfig
-using Compat.Base64
-using Compat: codeunits
+using Base: CmdRedirect
+using Base64
 
 get_caller_identity = @patch function get_caller_identity()
     account_id = join(rand(0:9, 12), "")

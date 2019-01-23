@@ -9,8 +9,6 @@ using Mocking
 using Retry
 using XMLDict
 
-using Compat: @__MODULE__, Nothing, findfirst, replace
-
 export S3Path, sync, upload
 
 include("S3Path.jl")

@@ -1,12 +1,11 @@
 using AWSCore
 using AWSTools.S3
 using FilePathsBase
-using Compat.UUIDs
+using UUIDs
 
 using AWSTools.CloudFormation: stack_output
 using AWSTools.S3: list_files, sync_key
 using AWSS3: s3_create_bucket, s3_put
-using Compat: @info, @warn
 
 setlevel!(getlogger(AWSTools.S3), "info")
 

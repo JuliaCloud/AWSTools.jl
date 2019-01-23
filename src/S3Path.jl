@@ -1,6 +1,4 @@
-using Compat.Dates
-
-using Compat: replace, split, occursin
+using Dates
 
 """
     S3Path <: AbstractPath

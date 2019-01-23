@@ -2,8 +2,8 @@ module ECR
 
 using AWSCore
 using AWSCore.Services: ecr
+using Base64
 using Mocking
-using Compat.Base64
 
 get_authorization_token(config; kwargs...) = ecr(config, "GetAuthorizationToken"; kwargs...)
 
