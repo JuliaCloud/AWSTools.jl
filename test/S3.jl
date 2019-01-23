@@ -26,19 +26,7 @@ const TEST_BUCKET_DIR = let
         end
     elseif !isempty(AWS_STACKNAME)
         output = stack_output(AWS_STACKNAME)
-
-        bucket_dir = if haskey(output, "TestBucketDir")
-            output["TestBucketDir"]
-        else
-            # Deprecation added in AWSTools v0.7.0
-            Base.depwarn(string(
-                "Stack \"$AWS_STACKNAME\" contains deprecated output \"TestBucketArn\". ",
-                "Please update the CloudFormation template to use \"TestBucketDir\" ",
-                "instead.",
-            ), :TEST_BUCKET_DIR)
-            replace(output["TestBucketArn"], r"^arn:aws:s3:::" => s"")  # Deprecated
-        end
-
+        bucket_dir = output["TestBucketDir"]
         "s3://$bucket_dir"
     else
         nothing

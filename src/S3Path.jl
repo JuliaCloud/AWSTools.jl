@@ -76,7 +76,7 @@ function S3Path(
     last_modified::DateTime=DateTime(0)
 )
     startswith(bucket, "s3://") && (bucket = bucket[6:end])
-    
+
     key_pieces = split(key, "/"; keepempty=false)
 
     # Retain ending `/` info to differentiate s3 folders from objects
@@ -327,12 +327,3 @@ function presign(
 )
     AWSS3.s3_sign_url(config, path.bucket, path.key, Dates.value(Second(duration)))
 end
-
-# BEGIN AWSTools.S3 0.7 deprecations
-
-function drive(path::S3Path)
-    Base.depwarn("`drive(::S3Path)` is deprecated and will be removed in the future.")
-    ("s3://", replace(path, r"^s3://" => s""))
-end
-
-# END AWSTools.S3 0.7 deprecations
