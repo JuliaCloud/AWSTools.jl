@@ -125,6 +125,15 @@ function sync(
 )
     info(logger, "syncing: $src to $dest")
 
+    # Verify the S3 src file or directory exists
+    if isa(src, S3Path) && !isfile(src) && !isdir(src)
+        error(
+            "Attemping to sync non-existent S3Path \"$src\". Please verify the file or " *
+            "directory exists and that the ending `/` was included if syncing an S3 " *
+            "directory."
+        )
+    end
+
     # Make sure src and dest directories exist
     if !isa(src, S3Path) && !isdir(src) && !isfile(src)
         mkdir(src; recursive=true)
