@@ -76,7 +76,7 @@ function S3Path(
     last_modified::DateTime=DateTime(0)
 )
     startswith(bucket, "s3://") && (bucket = bucket[6:end])
-    
+
     key_pieces = split(key, "/"; keepempty=false)
 
     # Retain ending `/` info to differentiate s3 folders from objects
@@ -122,7 +122,7 @@ function Base.isdir(path::S3Path)
     length(objects) > 0
 end
 
-Base.isfile(path::S3Path) = exists(path)
+Base.isfile(path::S3Path) = (isempty(path.key) || endswith(path.key, '/')) ? false : exists(path)
 function FilePathsBase.exists(object::S3Path)
     @mock s3_exists(default_aws_config(), object.bucket, object.key)
 end

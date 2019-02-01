@@ -582,7 +582,7 @@ end
                     src_folder = "$src/folder"
                     mkdir(src_folder)
                     src_folder_file = "$src_folder/file"
-                    touch(src_folder_file) # empty file
+                    touch(src_folder_file)  # empty file
 
                     sync(src, "s3://bucket-1/")
                     @test changes == expected_changes
@@ -599,6 +599,7 @@ end
 
         @testset "Sync s3 bucket to local folder" begin
             content = format_s3_objects([
+                ("bucket-1", "") => Dict("" => ""),
                 ("bucket-1", "folder1/file3") => Dict("Content" => "Test"),
                 ("bucket-1", "file1") => Dict("Content" => "Hello World!"),
                 ("bucket-1", "file2") => Dict("Content" => ""),
@@ -919,15 +920,17 @@ end
                             @test read(dest_file, String) == "Test modified file in source"
                         end
 
-                        @testset "Sync empty directory" begin
+                        @testset "Sync non-existent directory" begin
                             remove(src_dir; recursive=true)
 
-                            sync(src_dir, dest_dir; delete=true)
+                            # Error because src folder doesn't exist
+                            @test_throws ErrorException sync(src_dir, dest_dir; delete=true)
 
                             src_files = list_files(src_dir)
-                            dest_files = list_files(dest_dir)
-
                             @test isempty(src_files)
+
+                            remove(dest_dir; recursive=true)
+                            dest_files = list_files(dest_dir)
                             @test isempty(dest_files)
                         end
                     end
