@@ -1,7 +1,6 @@
 module EC2
 
 using Mocking
-using Compat
 
 export instance_region, instance_availability_zone
 

@@ -2,7 +2,6 @@ module Docker
 
 using AWSCore
 using ..ECR
-using Compat
 
 export login, pull, push, build
 

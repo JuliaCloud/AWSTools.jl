@@ -1,13 +1,12 @@
 module CloudFormation
 
+using AWSCore
+using AWSCore.Services: cloudformation
+using OrderedCollections: OrderedDict
+using MbedTLS: MbedException
 using Memento
 using Mocking
 using XMLDict
-using AWSCore
-using AWSCore.Services: cloudformation
-using Compat: AbstractDict, @__MODULE__
-using DataStructures: OrderedDict
-using MbedTLS: MbedException
 
 const logger = getlogger(@__MODULE__)
 

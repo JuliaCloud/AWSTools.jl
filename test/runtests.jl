@@ -2,12 +2,11 @@ using Mocking
 Mocking.enable(force=true)
 
 using AWSTools
-using Compat: AbstractDict, occursin
-using Compat.Dates
-using Compat.Test
-using Memento
-using DataStructures: OrderedDict
+using Dates
 using HTTP
+using Memento
+using OrderedCollections: OrderedDict
+using Test
 
 import AWSTools.Docker
 using AWSTools: account_id
