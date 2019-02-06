@@ -67,7 +67,6 @@ variables:
   script:
     - source julia-ci export
     - export PATH="$PATH:/usr/local/bin"
-    - unset SSL_CERT_DIR  # https://github.com/JuliaLang/julia/issues/20439
     - ./julia-ci test
     - ./julia-ci coverage
   extends: .test_shell_1_0
