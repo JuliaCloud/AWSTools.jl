@@ -1,6 +1,7 @@
 julia 0.7
 AWSCore 0.3
 AWSS3
+EzXML 0.7.3
 FilePathsBase 0.4.0
 MbedTLS
 Memento 0.7.0

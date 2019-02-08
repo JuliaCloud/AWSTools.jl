@@ -3,9 +3,11 @@ module S3
 
 using AWSCore
 using AWSS3
+using EzXML
 using FilePathsBase
 using Memento
 using Mocking
+using OrderedCollections: OrderedDict
 using Retry
 using XMLDict
 
