@@ -2,10 +2,11 @@ module CloudFormation
 
 using AWSCore
 using AWSCore.Services: cloudformation
-using OrderedCollections: OrderedDict
+using EzXML
 using MbedTLS: MbedException
 using Memento
 using Mocking
+using OrderedCollections: OrderedDict
 using XMLDict
 
 const logger = getlogger(@__MODULE__)
@@ -14,7 +15,7 @@ const logger = getlogger(@__MODULE__)
 # NOTE: If this line is not included then the precompiled `MyModule.logger` won't be registered at runtime.
 __init__() = Memento.register(logger)
 
-export stack_description, stack_output
+export raw_stack_description, stack_output, stack_description
 
 describe_stacks(config; kwargs...) = cloudformation(config, "DescribeStacks"; kwargs...)
 
@@ -25,14 +26,13 @@ function minimal_delays(; kwargs...)
     return ExponentialBackOff(; n=_NRETRIES, first_delay=0.1, max_delay=60, kwargs...)
 end
 
-
 """
-    stack_description(stack_name::AbstractString) -> AbstractDict
+    raw_stack_description(stack_name::AbstractString) -> String
 
 Returns the description for the specified stack. Can optionally pass in the aws `config`
 as a keyword argument.
 """
-function stack_description(
+function raw_stack_description(
     stack_name::AbstractString;
     config::AWSConfig=default_aws_config()
 )
@@ -54,12 +54,13 @@ function stack_description(
     end
 
     f = retry(delays=minimal_delays(), check=retry_cond) do
-        @mock describe_stacks(config, StackName=stack_name)
+        aws_raw_config = aws_config(return_raw=true)
+        @mock describe_stacks(aws_raw_config, StackName=stack_name)
     end
 
-    response = xml_dict(f())
+    response = String(f())
 
-    return response["DescribeStacksResponse"]["DescribeStacksResult"]["Stacks"]["member"]
+    return response
 end
 
 """
@@ -70,20 +71,16 @@ as a keyword argument.
 """
 function stack_output(stack_name::AbstractString; config::AWSConfig=default_aws_config())
     outputs = OrderedDict{String, String}()
-    description = stack_description(stack_name; config=config)
+    description = raw_stack_description(stack_name; config=config)
 
-    if "Outputs" in keys(description)
-        stack_outputs = description["Outputs"]["member"]
+    xml = root(parsexml(description))
+    ns = namespace(xml)
+    outputs_xml = findall("//ns:Stacks/ns:member[1]/ns:Outputs/ns:member", xml, ["ns" => ns])
 
-        if isa(stack_outputs, AbstractDict)
-            # Only 1 stack output
-            push!(outputs, output_pair(stack_outputs))
-        else
-            # More than 1 stack output
-            for item in stack_outputs
-                push!(outputs, output_pair(item))
-            end
-        end
+    for output in outputs_xml
+        key = firstelement(output).content
+        val = lastelement(output).content
+        outputs[key] = val
     end
 
     return outputs
@@ -101,5 +98,25 @@ function output_pair(item::AbstractDict)
 
     return key => value
 end
+
+# BEGIN AWSTools.Cloudformation 0.8.1 deprecations
+
+function stack_description(
+    stack_name::AbstractString;
+    config::AWSConfig=default_aws_config()
+)
+    dep_msg = """
+        `stack_description(::AbstractString; ::AWSConfig)` is deprecated and will be removed.
+        Please use `raw_stack_description(::AbstractString; ::AWSConfig)` instead and handle XML parsing in the calling function.
+        We recommend using EzXML.
+        """
+    Base.depwarn(dep_msg, :stack_description)
+    
+    response = xml_dict(raw_stack_description(stack_name))
+
+    return response["DescribeStacksResponse"]["DescribeStacksResult"]["Stacks"]["member"]
+end
+
+# END AWSTools.Cloudformation 0.8.1 deprecations
 
 end  # CloudFormation

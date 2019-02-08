@@ -41,7 +41,7 @@ true
 ### CloudFormation
 
 ```@docs
-AWSTools.CloudFormation.stack_description(::AbstractString)
+AWSTools.CloudFormation.raw_stack_description(::AbstractString)
 AWSTools.CloudFormation.stack_output(::AbstractString)
 ```
 

@@ -10,7 +10,7 @@ using Test
 
 import AWSTools.Docker
 using AWSTools: account_id
-using AWSTools.CloudFormation: stack_description, stack_output
+using AWSTools.CloudFormation: raw_stack_description, stack_output
 using AWSTools.EC2: instance_availability_zone, instance_region
 using AWSTools.ECR: get_login
 
@@ -20,6 +20,31 @@ setlevel!(getlogger(AWSTools), "debug")
 
 include("patch.jl")
 
+"""
+    describe_stack_string(throttle_count::Integer=0) -> String
+
+Returns the expected xml string for CloudFormation tests. 
+Pass in a throttle count for throttling.
+"""
+function describe_stack_string(throttle_count::Integer=0)
+    result = """
+      <DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+        <DescribeStacksResult>
+            <Stacks>
+              <member>
+                <StackId>Stack Id</StackId>
+                <StackName>Stack Name</StackName>
+                <Description>Stack Description</Description>
+                $(throttle_count > 0 ? "<ThrottleCount>$throttle_count</ThrottleCount>" : "")
+              </member>
+            </Stacks>
+        </DescribeStacksResult>
+      </DescribeStacksResponse>
+      """
+    
+    return replace(result, r"^\s*\n"m => "")
+end
+                
 # TODO: Include in Base
 function Base.convert(::Type{Vector{String}}, cmd::Cmd)
     cmd.exec
@@ -38,13 +63,9 @@ end
     @testset "CloudFormation" begin
         apply(describe_stacks_patch) do
 
-            @testset "stack_description" begin
-                resp = stack_description("stackname")
-                @test resp == Dict(
-                    "StackId" => "Stack Id",
-                    "StackName" => "Stack Name",
-                    "Description" => "Stack Description",
-                )
+            @testset "raw_stack_description" begin
+                resp = raw_stack_description("stackname")
+                @test resp == describe_stack_string()
             end
 
             @testset "stack_output" begin
@@ -70,17 +91,12 @@ end
     end
 
 
-    @testset "stack_description throttling" begin
+    @testset "raw_stack_description throttling" begin
         allow = [1, 3, 5, 7, 8, 11, 13, 14, 15, 16]
         apply(throttle_patch(allow)) do
             for i in 1:10
-                resp = stack_description("stackname")
-                @test resp == Dict(
-                    "StackId" => "Stack Id",
-                    "StackName" => "Stack Name",
-                    "Description" => "Stack Description",
-                    "ThrottleCount" => "$(allow[i])",
-                )
+                resp = raw_stack_description("stackname")
+                @test resp == describe_stack_string(allow[i])
             end
         end
     end
