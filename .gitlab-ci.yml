@@ -58,8 +58,8 @@ variables:
 "Online Tests":
   stage: online-test
   tags:
-    - ecr
     - linux
+    - docker-build
     - shell-ci
   variables:
     ONLINE: "S3"  # Runs the online S3 tests against AWS
