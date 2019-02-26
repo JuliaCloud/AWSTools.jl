@@ -13,7 +13,6 @@ include:
   - https://gitlab.invenia.ca/infrastructure/gitlab-ci-helper/raw/master/templates/teardown.yml
 
 variables:
-  JULIA_IMAGE: 468665244580.dkr.ecr.us-east-1.amazonaws.com/julia-gitlab-ci:1.0
   ONLINE: ""
 
 "1.0 (Mac)":
@@ -27,7 +26,7 @@ variables:
     - linux
     - 64-bit
     - docker-ci
-  extends: .test_docker  # Version determined by JULIA_IMAGE
+  extends: .test_docker_1_0
 
 "1.1 (Mac)":
   tags:
@@ -39,8 +38,8 @@ variables:
   tags:
     - linux
     - 64-bit
-    - shell-ci
-  extends: .test_shell_1_1
+    - docker-ci
+  extends: .test_docker_1_1
 
 "Nightly (Mac)":
   tags:
@@ -52,8 +51,8 @@ variables:
   tags:
     - linux
     - 64-bit
-    - shell-ci
-  extends: .test_shell_nightly
+    - docker-ci
+  extends: .test_docker_nightly
 
 "Online Tests":
   stage: online-test
