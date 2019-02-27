@@ -20,8 +20,13 @@ export raw_stack_description, stack_output, stack_description
 describe_stacks(config; kwargs...) = cloudformation(config, "DescribeStacks"; kwargs...)
 
 
-const _NRETRIES = 3
+const _NRETRIES = 5
+
 # for APIs we don't want to hammer
+function cautious_delays(; kwargs...)
+    return ExponentialBackOff(; n=_NRETRIES, first_delay=5, max_delay=300, kwargs...)
+end
+
 function minimal_delays(; kwargs...)
     return ExponentialBackOff(; n=_NRETRIES, first_delay=0.1, max_delay=60, kwargs...)
 end
@@ -53,7 +58,7 @@ function raw_stack_description(
         return (s, false)
     end
 
-    f = retry(delays=minimal_delays(), check=retry_cond) do
+    f = retry(delays=cautious_delays(; jitter=0.2), check=retry_cond) do
         aws_raw_config = aws_config(return_raw=true)
         @mock describe_stacks(aws_raw_config, StackName=stack_name)
     end
@@ -111,7 +116,7 @@ function stack_description(
         We recommend using EzXML.
         """
     Base.depwarn(dep_msg, :stack_description)
-    
+
     response = xml_dict(raw_stack_description(stack_name))
 
     return response["DescribeStacksResponse"]["DescribeStacksResult"]["Stacks"]["member"]
