@@ -23,7 +23,7 @@ include("patch.jl")
 """
     describe_stack_string(throttle_count::Integer=0) -> String
 
-Returns the expected xml string for CloudFormation tests. 
+Returns the expected xml string for CloudFormation tests.
 Pass in a throttle count for throttling.
 """
 function describe_stack_string(throttle_count::Integer=0)
@@ -41,10 +41,10 @@ function describe_stack_string(throttle_count::Integer=0)
         </DescribeStacksResult>
       </DescribeStacksResponse>
       """
-    
+
     return replace(result, r"^\s*\n"m => "")
 end
-                
+
 # TODO: Include in Base
 function Base.convert(::Type{Vector{String}}, cmd::Cmd)
     cmd.exec
@@ -57,6 +57,12 @@ end
     @testset "account_id" begin
         apply(get_caller_identity) do
             @test occursin(r"^\d{12}$", account_id())
+        end
+    end
+
+    @testset "assume_role" begin
+        apply(sts_assume_role) do
+            @test isa(AWSTools.assume_role("TestArn")[:creds], AWSCredentials)
         end
     end
 

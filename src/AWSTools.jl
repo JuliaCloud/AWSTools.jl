@@ -2,6 +2,7 @@ __precompile__()
 
 module AWSTools
 
+using Random
 using Mocking
 using AWSCore
 using AWSCore.Services: sts
@@ -28,7 +29,7 @@ function assume_role(
     role_session_name::AbstractString=randstring(16);
     config::AWSConfig=default_aws_config(),
 )
-    response = AWSCore.Services.sts(
+    response = @mock sts(
         config,
         "AssumeRole",
         RoleArn=role_arn,

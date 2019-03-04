@@ -11,6 +11,17 @@ get_caller_identity = @patch function get_caller_identity()
     )
 end
 
+sts_assume_role = @patch function sts(config::AWSConfig, op; RoleArn="", RoleSessionName="")
+    Dict(
+        "Credentials" => Dict(
+            "AccessKeyId" => "TESTACCESSKEYID",
+            "SecretAccessKey" => "TESTSECRETACEESSKEY",
+            "SessionToken" => "TestSessionToken"
+        ),
+    )
+end
+
+
 instance_availability_zone_patch = @patch function read(cmd::CmdRedirect, ::Type{String})
     url = cmd.cmd.exec[2]
     @test endswith(url, "availability-zone")
