@@ -121,6 +121,28 @@ describe_stacks_patch = @patch function describe_stacks(args...; kwargs...)
           </DescribeStacksResult>
         </DescribeStacksResponse>
         """,
+        Dict(:StackName => "export") =>
+        """
+        <DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+          <DescribeStacksResult>
+            <Stacks>
+              <member>
+                <Outputs>
+                  <member>
+                    <Description>Exported output for use in other stacks</Description>
+                    <ExportName>ExportedKey</ExportName>
+                    <OutputKey>Key</OutputKey>
+                    <OutputValue>Value</OutputValue>
+                  </member>
+                </Outputs>
+                <StackId>Stack Id</StackId>
+                <StackName>Stack Name</StackName>
+                <Description>Stack Description</Description>
+              </member>
+            </Stacks>
+          </DescribeStacksResult>
+        </DescribeStacksResponse>
+        """,
     )
 
     return responses[Dict{Symbol, String}(kwargs)]

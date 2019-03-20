@@ -38,6 +38,10 @@ true
 
 ## API
 
+```@docs
+AWSTools.assume_role
+```
+
 ### CloudFormation
 
 ```@docs
