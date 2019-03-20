@@ -1,11 +1,11 @@
-__precompile__()
-
 module AWSTools
 
-using Random
-using Mocking
 using AWSCore
 using AWSCore.Services: sts
+using Mocking
+using Random
+
+export assume_role
 
 get_caller_identity() = sts("GetCallerIdentity")
 account_id() = (@mock get_caller_identity())["Account"]
