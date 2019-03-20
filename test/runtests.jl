@@ -92,6 +92,9 @@ end
                 @test outputs == Dict(
                     "ParquetConversionTriggerName" => "",
                 )
+
+                outputs = stack_output("export")
+                @test outputs == Dict("Key" => "Value")
             end
         end
     end

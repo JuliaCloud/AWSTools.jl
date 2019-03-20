@@ -79,12 +79,12 @@ function stack_output(stack_name::AbstractString; config::AWSConfig=default_aws_
     description = raw_stack_description(stack_name; config=config)
 
     xml = root(parsexml(description))
-    ns = namespace(xml)
-    outputs_xml = findall("//ns:Stacks/ns:member[1]/ns:Outputs/ns:member", xml, ["ns" => ns])
+    ns = ["ns" => namespace(xml)]
+    output_elements = findall("//ns:Outputs/ns:member", xml, ns)
 
-    for output in outputs_xml
-        key = firstelement(output).content
-        val = lastelement(output).content
+    for el in output_elements
+        key = nodecontent(findfirst("ns:OutputKey", el, ns))
+        val = nodecontent(findfirst("ns:OutputValue", el, ns))
         outputs[key] = val
     end
 
