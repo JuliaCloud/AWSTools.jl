@@ -59,7 +59,8 @@ function raw_stack_description(
     end
 
     f = retry(delays=cautious_delays(; jitter=0.2), check=retry_cond) do
-        aws_raw_config = aws_config(return_raw=true)
+        aws_raw_config = deepcopy(config)
+        aws_raw_config[:return_raw] = true
         @mock describe_stacks(aws_raw_config, StackName=stack_name)
     end
 
