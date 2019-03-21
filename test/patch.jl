@@ -2,6 +2,9 @@ using AWSCore: AWSConfig
 using Base: CmdRedirect
 using Base64
 
+const invalid_access_key = "ThisIsMyInvalidAccessKey"
+const invalid_secret_key = "ThisIsMyInvalidSecretKey"
+
 get_caller_identity = @patch function get_caller_identity()
     account_id = join(rand(0:9, 12), "")
     Dict(
@@ -148,7 +151,7 @@ describe_stacks_patch = @patch function describe_stacks(config, args...; kwargs.
     # So we can test that we get an error using the invalid access and secret keys
     access_key = config[:creds].access_key_id
     secret_key = config[:creds].secret_key
-    if access_key == "InvalidAccessKey" && secret_key == "InvalidSecretKey"
+    if access_key == invalid_access_key && secret_key == invalid_secret_key
         throw(AWSCore.AWSException(
             HTTP.StatusError(403, HTTP.Messages.Response(403, """
                 <ErrorResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
