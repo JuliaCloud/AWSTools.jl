@@ -82,7 +82,7 @@ function _s3_list_objects(aws::AWSConfig, bucket, path_prefix=""; max_items=noth
 end
 
 function _s3_list_objects(args...; kwargs...)
-    _s3_list_objects(default_aws_config(), args...; kwargs...)
+    _s3_list_objects(aws_config(), args...; kwargs...)
 end
 
 """
@@ -102,7 +102,7 @@ function sync(
     src::AbstractString,
     dest::AbstractString;
     delete::Bool=false,
-    config::AWSConfig=default_aws_config(),
+    config::AWSConfig=aws_config(),
 )
     sync(Path(src), Path(dest); delete=delete)
 end
@@ -121,7 +121,7 @@ function sync(
     src::AbstractPath,
     dest::AbstractPath;
     delete::Bool=false,
-    config::AWSConfig=default_aws_config(),
+    config::AWSConfig=aws_config(),
 )
     info(logger, "syncing: $src to $dest")
 
@@ -220,15 +220,15 @@ function sync_path(src::AbstractPath, dest::AbstractPath; kwargs...)
     copy(src, dest; overwrite=true, exist_ok=true)
 end
 
-function sync_path(src::AbstractPath, dest::S3Path; config::AWSConfig=default_aws_config())
+function sync_path(src::AbstractPath, dest::S3Path; config::AWSConfig=aws_config())
     copy(src, dest; overwrite=true, exist_ok=true, config=config)
 end
 
-function sync_path(src::S3Path, dest::S3Path; config::AWSConfig=default_aws_config())
+function sync_path(src::S3Path, dest::S3Path; config::AWSConfig=aws_config())
     copy(src, dest; overwrite=true, exist_ok=true, config=config)
 end
 
-function sync_path(src::S3Path, dest::AbstractPath; config::AWSConfig=default_aws_config())
+function sync_path(src::S3Path, dest::AbstractPath; config::AWSConfig=aws_config())
     # Make sure parent directory exists
     mkdir(parent(dest); recursive=true, exist_ok=true)
     copy(src, dest; overwrite=true, exist_ok=true, config=config)
@@ -262,7 +262,7 @@ end
 List all the objects in an s3 bucket that include the specified s3 path's key as a prefix
 in their key.
 """
-function list_files(path::S3Path; config::AWSConfig=default_aws_config())
+function list_files(path::S3Path; config::AWSConfig=aws_config())
     all_objects = Vector{AbstractPath}()
 
     all_items = @mock _s3_list_objects(config, path.bucket, path.key)

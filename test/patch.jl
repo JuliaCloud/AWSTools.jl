@@ -257,7 +257,7 @@ function s3_patches!(content::AbstractDict, changes::AbstractVector=[])
         end
 
         # https://github.com/invenia/Mocking.jl/issues/59
-        # @patch _s3_list_objects(args...) = _s3_list_objects(default_aws_config(), args...)
+        # @patch _s3_list_objects(args...) = _s3_list_objects(aws_config(), args...)
 
         @patch function s3_get(config::AWSConfig, bucket, path; kwargs...)
             codeunits(get(content[(bucket, path)], "Content", ""))
