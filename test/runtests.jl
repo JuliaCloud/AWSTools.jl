@@ -72,6 +72,10 @@ end
             @testset "raw_stack_description" begin
                 resp = raw_stack_description("stackname")
                 @test resp == describe_stack_string()
+                @test_throws AWSCore.AWSException begin
+                    creds = AWSCredentials("InvalidAccessKey", "InvalidSecretKey")
+                    raw_stack_description("stackname"; config=aws_config(; creds=creds))
+                end
             end
 
             @testset "stack_output" begin

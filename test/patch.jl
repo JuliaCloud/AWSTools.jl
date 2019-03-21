@@ -41,7 +41,7 @@ get_authorization_token_patch = @patch function get_authorization_token(config::
 end
 
 
-describe_stacks_patch = @patch function describe_stacks(args...; kwargs...)
+describe_stacks_patch = @patch function describe_stacks(config, args...; kwargs...)
     responses = Dict(
        Dict(:StackName => "stackname") =>
         """
@@ -145,7 +145,26 @@ describe_stacks_patch = @patch function describe_stacks(args...; kwargs...)
         """,
     )
 
-    return responses[Dict{Symbol, String}(kwargs)]
+    # So we can test that we get an error using the invalid access and secret keys
+    access_key = config[:creds].access_key_id
+    secret_key = config[:creds].secret_key
+    if access_key == "InvalidAccessKey" && secret_key == "InvalidSecretKey"
+        throw(AWSCore.AWSException(
+            HTTP.StatusError(403, HTTP.Messages.Response(403, """
+                <ErrorResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+                    <Error>
+                    <Type>Sender</Type>
+                    <Code>InvalidClientTokenId</Code>
+                    <Message>The security token included in the request is invalid.</Message>
+                    </Error>
+                    <RequestId>cff5beb8-4b7b-11e9-9c2b-43c18f6078dc</RequestId>
+                </ErrorResponse>
+                """
+            ))
+        ))
+    else
+        return responses[Dict{Symbol, String}(kwargs)]
+    end
 end
 
 
