@@ -266,7 +266,7 @@ function Base.copy(
             write(dest, content)
         end
     else
-        error("$src is not a valid path")
+        error("Source S3Path $src does not exist.")
     end
     # Return filename that was downloaded as a String, needed for use with DataDeps
     return dest
