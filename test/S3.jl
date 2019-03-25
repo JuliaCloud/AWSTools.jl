@@ -373,8 +373,8 @@ end
                     ("bucket-1", "file2"),
                     ("bucket-1", "folder1/file3"),
                 ])
-                changes = []
-                expected_changes = [
+                changes = Set(Pair{Symbol, Any}[])
+                expected_changes = Set([
                     :copy => Dict(
                         :from => ("bucket-1", "folder1/file3"),
                         :to   => ("bucket-2", "folder1/file3"),
@@ -387,7 +387,7 @@ end
                         :from => ("bucket-1", "file2"),
                         :to   => ("bucket-2", "file2"),
                     )
-                ]
+                ])
 
                 apply(s3_patches!(content, changes)) do
                     sync("s3://bucket-1/", "s3://bucket-2/")
@@ -406,8 +406,8 @@ end
                     ("bucket-1", "dir1/file"),
                     ("bucket-1", "dir1/folder1/file"),
                 ])
-                changes = []
-                expected_changes = [
+                changes = Set(Pair{Symbol, Any}[])
+                expected_changes = Set([
                     :copy => Dict(
                         :from => ("bucket-1", "dir1/folder1/file"),
                         :to   => ("bucket-2", "folder1/file"),
@@ -416,7 +416,7 @@ end
                         :from => ("bucket-1", "dir1/file"),
                         :to   => ("bucket-2", "file"),
                     ),
-                ]
+                ])
 
                 apply(s3_patches!(content, changes)) do
                     sync("s3://bucket-1/dir1/", "s3://bucket-2/")
@@ -436,8 +436,8 @@ end
                     ("bucket-1", "dir1/file"),
                     ("bucket-1", "dir2/folder2/file2"),
                 ])
-                changes = []
-                expected_changes = [
+                changes = Set(Pair{Symbol, Any}[])
+                expected_changes = Set([
                     :copy => Dict(
                         :from => ("bucket-1", "dir1/folder1/file"),
                         :to   => ("bucket-1", "dir2/folder1/file"),
@@ -446,11 +446,11 @@ end
                         :from => ("bucket-1", "dir1/file"),
                         :to   => ("bucket-1", "dir2/file"),
                     ),
-                ]
-                expected_delete = [
+                ])
+                expected_delete = Set([
                     expected_changes...,
                     :delete => ("bucket-1", "dir2/folder2/file2"),
-                ]
+                ])
 
                 apply(s3_patches!(content, changes)) do
                     sync("s3://bucket-1/dir1/", "s3://bucket-1/dir2/")
@@ -469,8 +469,8 @@ end
                     ("bucket-1", "dir1/folder1/file"),
                     ("bucket-2", "dir2/file2"),
                 ])
-                changes = []
-                expected_changes = [
+                changes = Set(Pair{Symbol, Any}[])
+                expected_changes = Set([
                     :copy => Dict(
                         :from => ("bucket-1", "dir1/folder1/file"),
                         :to   => ("bucket-2", "dir2/folder1/file"),
@@ -479,11 +479,11 @@ end
                         :from => ("bucket-1", "dir1/file"),
                         :to   => ("bucket-2", "dir2/file"),
                     ),
-                ]
-                expected_delete = [
+                ])
+                expected_delete = Set([
                     expected_changes...,
                     :delete => ("bucket-2", "dir2/file2"),
-                ]
+                ])
 
                 apply(s3_patches!(content, changes)) do
                     sync("s3://bucket-1/dir1/", "s3://bucket-2/dir2/")
@@ -504,8 +504,8 @@ end
                     ("bucket-2", "dir2/folder2/file3") => Dict(),
                     ("bucket-2", "dir2/file2") => Dict("Size" => "12"),
                 ])
-                changes = []
-                expected_changes = [
+                changes = Set(Pair{Symbol, Any}[])
+                expected_changes = Set([
                     :copy => Dict(
                         :from => ("bucket-1", "folder1/file3"),
                         :to   => ("bucket-2", "dir2/folder1/file3"),
@@ -518,11 +518,11 @@ end
                         :from => ("bucket-1", "file2"),
                         :to   => ("bucket-2", "dir2/file2"),
                     ),
-                ]
-                expected_delete = [
+                ])
+                expected_delete = Set([
                     expected_changes...,
                     :delete => ("bucket-2", "dir2/folder2/file3"),
-                ]
+                ])
 
                 apply(s3_patches!(content, changes)) do
                     sync("s3://bucket-1/", "s3://bucket-2/dir2/")
@@ -542,8 +542,8 @@ end
                 ("bucket-1", "file1"),
                 ("bucket-1", "file2"),
             ])
-            changes = []
-            expected_changes = [
+            changes = Set(Pair{Symbol, Any}[])
+            expected_changes = Set([
                 :put => Dict(
                     :dest => ("bucket-1", "folder/file"),
                     :data => "",
@@ -552,13 +552,13 @@ end
                     :dest => ("bucket-1", "file"),
                     :data => "Hello World!",
                 ),
-            ]
-            expected_delete = [
+            ])
+            expected_delete = Set([
                 expected_changes...,
                 :delete => ("bucket-1", "folder1/file3"),
                 :delete => ("bucket-1", "file1"),
                 :delete => ("bucket-1", "file2"),
-            ]
+            ])
 
             mktempdir() do src
                 apply(s3_patches!(content, changes)) do
@@ -800,9 +800,7 @@ end
                         ]
                         # Not including the ending `/` means this refers to an object and
                         # not a directory prefix in S3
-                        @test_throws ArgumentError readdir(
-                            Path(s3_prefix)
-                        )
+                        @test_throws ArgumentError readdir(Path(s3_prefix))
 
                         @testset "Sync modified dest file" begin
                             # Modify a file in dest
@@ -941,5 +939,3 @@ end
         end
     end
 end
-
-

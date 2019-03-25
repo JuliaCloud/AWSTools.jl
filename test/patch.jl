@@ -244,7 +244,7 @@ function format_s3_objects(content::AbstractVector{Tuple{String,String}})
 end
 
 
-function s3_patches!(content::AbstractDict, changes::AbstractVector=[])
+function s3_patches!(content::AbstractDict, changes::Set=Set(Pair{Symbol, Any}[]))
     return [
         @patch function _s3_list_objects(config::AWSConfig, bucket, path_prefix; kwargs...)
             results = []
