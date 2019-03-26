@@ -81,8 +81,9 @@ function _s3_list_objects(aws::AWSConfig, bucket, path_prefix=""; max_items=noth
     return objects
 end
 
+# Default config in first posistion
 function _s3_list_objects(args...; kwargs...)
-    _s3_list_objects(aws_config(), args...; kwargs...)
+    return _s3_list_objects(aws_config(), args...; kwargs...)
 end
 
 """
@@ -104,7 +105,7 @@ function sync(
     delete::Bool=false,
     config::AWSConfig=aws_config(),
 )
-    sync(Path(src), Path(dest); delete=delete)
+    sync(Path(src), Path(dest); delete=delete, config=config)
 end
 
 """
@@ -125,8 +126,20 @@ function sync(
 )
     info(logger, "syncing: $src to $dest")
 
+    # Locally version many codes to insert config as needed
+    _isdir(path) = FilePathsBase.isdir(path)
+    _isdir(path::S3Path) = FilePathsBase.isdir(path; config=config)
+    _isfile(path) = FilePathsBase.isfile(path)
+    _isfile(path::S3Path) = FilePathsBase.isfile(path; config=config)
+
+    _mkdir(path; kwargs...) = FilePathsBase.mkdir(path; kwargs...)
+    _mkdir(path::S3Path; kwargs...) = FilePathsBase.mkdir(path; config=config, kwargs...)
+    _remove(path) = FilePathsBase.remove(path)
+    _remove(path::S3Path) = FilePathsBase.remove(path; config=config)
+
+
     # Verify the S3 src file or directory exists
-    if isa(src, S3Path) && !isfile(src) && !isdir(src)
+    if isa(src, S3Path) && !_isfile(src) && !_isdir(src)
         error(
             "Attemping to sync non-existent S3Path \"$src\". Please verify the file or " *
             "directory exists and that the ending `/` was included if syncing an S3 " *
@@ -135,22 +148,22 @@ function sync(
     end
 
     # Make sure src and dest directories exist
-    if !isa(src, S3Path) && !isdir(src) && !isfile(src)
-        mkdir(src; recursive=true)
+    if !isa(src, S3Path) && !_isdir(src) && !_isfile(src)
+        _mkdir(src; recursive=true)
     end
-    if !isa(dest, S3Path) && isdir(src) && !isdir(dest) && !isfile(dest)
-        mkdir(dest; recursive=true, exist_ok=true)
+    if !isa(dest, S3Path) && _isdir(src) && !_isdir(dest) && !_isfile(dest)
+        _mkdir(dest; recursive=true, exist_ok=true)
     end
 
     # Verify src and dest directories are compatible
-    if isfile(src) && isdir(dest)
+    if _isfile(src) && _isdir(dest)
         throw(ArgumentError("Cannot sync file $src to a directory ($dest)"))
 
-    elseif isdir(src) && isfile(dest)
+    elseif _isdir(src) && _isfile(dest)
         throw(ArgumentError("Cannot sync directory $src to a file ($dest)"))
 
     # Sync two files
-    elseif isfile(src)
+    elseif _isfile(src)
         # Copy src file to the destination
         sync_path(src, dest; config=config)
 
@@ -198,12 +211,8 @@ function sync(
                     "source ($src/$(sync_key(dest, curr_path))) and delete mode enabled"
                 )
 
-                if isa(curr_path, S3Path)
-                    @async remove(curr_path; config=config)
-                else
-                    info(logger, "delete: $curr_path")
-                    @async remove(curr_path)
-                end
+                info(logger, "delete: $curr_path")
+                @async remove(curr_path)
             end
             # Clean up empty folders on local file system
             cleanup_empty_folders(dest)
@@ -241,6 +250,8 @@ end
 Lists all the files in a local path and subdirectories.
 """
 function list_files(path::AbstractPath; kwargs...)
+    # We ignore all kwargs, this means we can pass this a config like the S3Path
+    # method needs
     all_files = Vector{AbstractPath}()
 
     if isfile(path)
@@ -282,7 +293,7 @@ function list_files(path::S3Path; config::AWSConfig=aws_config())
             size=parse(Int, item["Size"]),
             last_modified=last_modified,
         )
-        !isdir(object) && push!(all_objects, object)
+        !isdir(object; config=config) && push!(all_objects, object)
     end
 
     return all_objects
@@ -292,6 +303,7 @@ end
     cleanup_empty_folders(path::AbstractPath)
 
 Recusively deletes empty folders in the path.
+Does nothing if called on a `S3Path`.
 """
 function cleanup_empty_folders(path::AbstractPath)
     if !isa(path, S3Path) && isdir(path)
@@ -315,6 +327,9 @@ For example if we did `sync("dir1", "dir2")`, a file located at "dir1/folder/myf
 have a sync_key of "folder/myfile" and would be synced to "dir2/folder/myfile".
 """
 function sync_key(src::AbstractPath, path::AbstractPath)
+    # Note: all operations here are purely based on the filename,
+    # so do not need to touch the filesystem, so no AWS config is needed
+    # in python's PathLib terminology they are Pure
     if path == src
         return ""
     elseif !isempty(src) && src in parents(path)
@@ -330,7 +345,6 @@ end
 
 Returns true if the `src` file is newer or of different size than `dest`.
 """
-should_sync
 should_sync(src::AbstractPath, dest::Nothing) = true
 
 function should_sync(src::AbstractPath, dest::AbstractPath)
