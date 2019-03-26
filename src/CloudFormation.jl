@@ -39,7 +39,7 @@ as a keyword argument.
 """
 function raw_stack_description(
     stack_name::AbstractString;
-    config::AWSConfig=default_aws_config()
+    config::AWSConfig=aws_config()
 )
     function retry_cond(s, e)
         if e isa AWSException
@@ -75,7 +75,7 @@ end
 The stack's OutputKey and OutputValue values as a dictionary. Can pass in the aws `config`
 as a keyword argument.
 """
-function stack_output(stack_name::AbstractString; config::AWSConfig=default_aws_config())
+function stack_output(stack_name::AbstractString; config::AWSConfig=aws_config())
     outputs = OrderedDict{String, String}()
     description = raw_stack_description(stack_name; config=config)
 
@@ -109,7 +109,7 @@ end
 
 function stack_description(
     stack_name::AbstractString;
-    config::AWSConfig=default_aws_config()
+    config::AWSConfig=aws_config()
 )
     dep_msg = """
         `stack_description(::AbstractString; ::AWSConfig)` is deprecated and will be removed.

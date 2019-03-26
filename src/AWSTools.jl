@@ -27,7 +27,7 @@ to use this config in the various AWS calls you perform.
 function assume_role(
     role_arn::AbstractString,
     role_session_name::AbstractString=randstring(16);
-    config::AWSConfig=default_aws_config(),
+    config::AWSConfig=aws_config(),
 )
     response = @mock sts(
         config,

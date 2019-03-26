@@ -13,7 +13,7 @@ Takes an optional AWS `config` keyword argument or uses the default.
 """
 function login(
     registry_id::Union{AbstractString, Integer}="";
-    config::AWSConfig=default_aws_config()
+    config::AWSConfig=aws_config()
 )
     login(ECR.get_login(registry_id; config=config))
 end

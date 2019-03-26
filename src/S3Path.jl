@@ -116,13 +116,13 @@ function Base.isdir(path::S3Path)
     else
         return false
     end
-    objects = @mock _s3_list_objects(default_aws_config(), path.bucket, key; max_items=1)
+    objects = @mock _s3_list_objects(aws_config(), path.bucket, key; max_items=1)
     length(objects) > 0
 end
 
 Base.isfile(path::S3Path) = (isempty(path.key) || endswith(path.key, '/')) ? false : exists(path)
 function FilePathsBase.exists(object::S3Path)
-    @mock s3_exists(default_aws_config(), object.bucket, object.key)
+    @mock s3_exists(aws_config(), object.bucket, object.key)
 end
 
 function FilePathsBase.parents(path::S3Path)
@@ -152,7 +152,7 @@ function Base.join(root::S3Path, pieces::Union{AbstractPath, AbstractString}...)
     return S3Path(Tuple(all_parts))
 end
 
-function Base.readdir(path::S3Path; config::AWSConfig=default_aws_config())
+function Base.readdir(path::S3Path; config::AWSConfig=aws_config())
     if isdirpath(path)
         # Only list the files and "dirs" within this S3 "dir"
         all_items = list_files(path; config=config)
@@ -166,11 +166,11 @@ function Base.readdir(path::S3Path; config::AWSConfig=default_aws_config())
     end
 end
 
-function Base.read(path::S3Path, ::Type{String}; config::AWSConfig=default_aws_config())
+function Base.read(path::S3Path, ::Type{String}; config::AWSConfig=aws_config())
     return String(read(path; config=config))
 end
 
-function Base.read(path::S3Path; config::AWSConfig=default_aws_config())
+function Base.read(path::S3Path; config::AWSConfig=aws_config())
     return @mock s3_get(config, path.bucket, path.key)
 end
 
@@ -178,7 +178,7 @@ function Base.write(
     path::S3Path,
     content::Union{String, Vector{UInt8}},
     mode="w";
-    config::AWSConfig=default_aws_config()
+    config::AWSConfig=aws_config()
 )
     @mock s3_put(config, path.bucket, path.key, content)
 end
@@ -186,7 +186,7 @@ end
 function FilePathsBase.remove(
     object::S3Path;
     recursive::Bool=false,
-    config::AWSConfig=default_aws_config()
+    config::AWSConfig=aws_config()
 )
     if isdirpath(object)
         files = list_files(object)
@@ -209,7 +209,7 @@ function Base.copy(
     dest::S3Path;
     exist_ok::Bool=true,
     overwrite::Bool=false,
-    config::AWSConfig=default_aws_config()
+    config::AWSConfig=aws_config()
 )
     if exists(src)
 
@@ -245,7 +245,7 @@ function Base.copy(
     dest::AbstractPath;
     exist_ok=true,
     overwrite=false,
-    config::AWSConfig=default_aws_config()
+    config::AWSConfig=aws_config()
 )
     if exists(src)
 
@@ -277,7 +277,7 @@ function Base.copy(
     dest::S3Path;
     exist_ok=true,
     overwrite=false,
-    config::AWSConfig=default_aws_config()
+    config::AWSConfig=aws_config()
 )
     if exists(src)
 
@@ -321,7 +321,7 @@ const upload = Base.copy
 function presign(
     path::S3Path,
     duration::Period=Hour(1);
-    config::AWSConfig=default_aws_config(),
+    config::AWSConfig=aws_config(),
 )
     AWSS3.s3_sign_url(config, path.bucket, path.key, Dates.value(Second(duration)))
 end
