@@ -100,12 +100,16 @@ root(path::S3Path) = ""
 # S3Path specific methods
 Base.show(io::IO, object::S3Path) = print(io, "p\"$(String(object))\"")
 Base.real(object::S3Path) = object
+
+# Note: that modified and size are not nesc true information
+# They are passed into the constructor and if not passed in are defaulted
+# They should not be trusted
 Base.size(object::S3Path) = object.size
 FilePathsBase.modified(object::S3Path) = object.last_modified
 
 Base.isdirpath(path::S3Path) = isempty(path.key) || endswith(path.key, '/')
 
-function Base.isdir(path::S3Path)
+function Base.isdir(path::S3Path; config::AWSConfig=aws_config())
     # Note: objects "s3://bucket/a" and "s3://bucket/a/b" can co-exist. If both of these
     # objects exist listing the keys for "s3://bucket/a" returns ["s3://bucket/a"] while
     # "s3://bucket/a/" returns ["s3://bucket/a/b"].
@@ -116,13 +120,16 @@ function Base.isdir(path::S3Path)
     else
         return false
     end
-    objects = @mock _s3_list_objects(aws_config(), path.bucket, key; max_items=1)
-    length(objects) > 0
+    objects = @mock _s3_list_objects(config, path.bucket, key; max_items=1)
+    return length(objects) > 0
 end
 
-Base.isfile(path::S3Path) = (isempty(path.key) || endswith(path.key, '/')) ? false : exists(path)
-function FilePathsBase.exists(object::S3Path)
-    @mock s3_exists(aws_config(), object.bucket, object.key)
+function Base.isfile(path::S3Path; config::AWSConfig=aws_config())
+    return !isdirpath(path) && exists(path; config=config)
+end
+
+function FilePathsBase.exists(object::S3Path; config::AWSConfig=aws_config())
+    return @mock s3_exists(config, object.bucket, object.key)
 end
 
 function FilePathsBase.parents(path::S3Path)
@@ -211,14 +218,14 @@ function Base.copy(
     overwrite::Bool=false,
     config::AWSConfig=aws_config()
 )
-    if exists(src)
+    if exists(src; config=config)
 
         # If `dest` is a directory, copy `src` to that directory with the same name
         if isdirpath(dest)
             dest = join(dest, basename(src))
         end
 
-        already_exists = exists(dest)
+        already_exists = exists(dest; config=config)
 
         if already_exists && !exist_ok
             error("$dest already exists")
@@ -235,7 +242,7 @@ function Base.copy(
             )
         end
     else
-        error("$src is not a valid path")
+        error("Source S3Path $src does not exist.")
     end
     return dest
 end
@@ -247,7 +254,7 @@ function Base.copy(
     overwrite=false,
     config::AWSConfig=aws_config()
 )
-    if exists(src)
+    if exists(src; config=config)
 
         # If `dest` is a directory, download `src` to that directory with the same name
         if isdir(dest)
@@ -286,7 +293,7 @@ function Base.copy(
             dest = join(dest, basename(src))
         end
 
-        already_exists = exists(dest)
+        already_exists = exists(dest; config=config)
 
         if already_exists && !exist_ok
             error("$dest already exists")
@@ -298,7 +305,7 @@ function Base.copy(
             write(dest, content; config=config)
         end
     else
-        error("$src is not a valid path")
+        error("Source $src does not exist.")
     end
     return dest
 end
