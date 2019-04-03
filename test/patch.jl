@@ -1,7 +1,7 @@
 using AWSCore: AWSConfig
 using Base: CmdRedirect
 using Base64
-
+using Dates: datetime2unix, now
 const invalid_access_key = "ThisIsMyInvalidAccessKey"
 const invalid_secret_key = "ThisIsMyInvalidSecretKey"
 
@@ -19,7 +19,8 @@ sts_assume_role = @patch function sts(config::AWSConfig, op; RoleArn="", RoleSes
         "Credentials" => Dict(
             "AccessKeyId" => "TESTACCESSKEYID",
             "SecretAccessKey" => "TESTSECRETACEESSKEY",
-            "SessionToken" => "TestSessionToken"
+            "SessionToken" => "TestSessionToken",
+            "Expiration" => datetime2unix(now()),
         ),
     )
 end
