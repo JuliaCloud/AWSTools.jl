@@ -63,6 +63,7 @@ end
     @testset "assume_role" begin
         apply(sts_assume_role) do
             @test isa(AWSTools.assume_role("TestArn")[:creds], AWSCredentials)
+            @test isa(AWSTools.assume_role("TestArn")[:creds].renew, Function)
         end
     end
 

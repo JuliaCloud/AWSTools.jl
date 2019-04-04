@@ -4,7 +4,7 @@ using AWSCore
 using AWSCore.Services: sts
 using Mocking
 using Random
-
+using Dates: unix2datetime
 export assume_role
 
 get_caller_identity() = sts("GetCallerIdentity")
@@ -29,21 +29,27 @@ function assume_role(
     role_session_name::AbstractString=randstring(16);
     config::AWSConfig=aws_config(),
 )
-    response = @mock sts(
-        config,
-        "AssumeRole",
-        RoleArn=role_arn,
-        RoleSessionName=role_session_name,
-    )
-    credentials = response["Credentials"]
-
-    return aws_config(
-        creds=AWSCredentials(
+    function get_role_creds(role_arn, role_session_name, config)
+        response = @mock sts(
+            config,
+            "AssumeRole",
+            RoleArn=role_arn,
+            RoleSessionName=role_session_name,
+        )
+        credentials = response["Credentials"]
+        AWSCredentials(
             credentials["AccessKeyId"],
             credentials["SecretAccessKey"],
             credentials["SessionToken"],
+            expiry = unix2datetime(credentials["Expiration"])
         )
-    )
+    end
+
+    renew = () -> get_role_creds(role_arn, role_session_name, config)
+    creds = renew()
+    creds.renew = renew
+
+    return aws_config(creds=creds)
 end
 
 
