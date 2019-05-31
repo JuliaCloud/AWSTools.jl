@@ -154,7 +154,7 @@ describe_stacks_patch = @patch function describe_stacks(config, args...; kwargs.
     secret_key = config[:creds].secret_key
     if access_key == invalid_access_key && secret_key == invalid_secret_key
         throw(AWSCore.AWSException(
-            HTTP.StatusError(403, HTTP.Messages.Response(403, """
+            HTTP.StatusError(403, "", "", HTTP.Messages.Response(403, """
                 <ErrorResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
                     <Error>
                     <Type>Sender</Type>
@@ -187,7 +187,7 @@ function throttle_patch(allow)
                     <RequestId>d0c477ac-f267-11e8-9d2b-93e3aa6368c5</RequestId>
                 </ErrorResponse>
                 """
-            http_error = HTTP.ExceptionRequest.StatusError(400, HTTP.Messages.Response(400, error_message))
+            http_error = HTTP.ExceptionRequest.StatusError(400, "", "", HTTP.Messages.Response(400, error_message))
             throw(AWSException(http_error))
         end
         responses = Dict(
