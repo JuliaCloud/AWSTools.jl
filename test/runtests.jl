@@ -108,9 +108,9 @@ end
     @testset "raw_stack_description throttling" begin
         allow = [1, 3, 5, 7, 8, 11, 13, 14, 15, 16]
         apply(throttle_patch(allow)) do
-            for i in 1:10
+            for i in allow
                 resp = raw_stack_description("stackname")
-                @test resp == describe_stack_string(allow[i])
+                @test resp == describe_stack_string(i)
             end
         end
     end

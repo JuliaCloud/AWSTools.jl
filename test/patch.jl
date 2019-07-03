@@ -187,7 +187,8 @@ function throttle_patch(allow)
                     <RequestId>d0c477ac-f267-11e8-9d2b-93e3aa6368c5</RequestId>
                 </ErrorResponse>
                 """
-            http_error = HTTP.ExceptionRequest.StatusError(400, "", "", HTTP.Messages.Response(400, error_message))
+            response = HTTP.Messages.Response(400, error_message)
+            http_error = HTTP.ExceptionRequest.StatusError(400, "", "", response)
             throw(AWSException(http_error))
         end
         responses = Dict(
