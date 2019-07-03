@@ -52,6 +52,7 @@ function assume_role(
     return aws_config(creds=creds)
 end
 
+include("timeout.jl")
 
 include("CloudFormation.jl")
 include("EC2.jl")

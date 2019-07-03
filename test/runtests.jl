@@ -53,6 +53,7 @@ end
 
 @testset "AWSTools Tests" begin
 
+    include("timeout.jl")
     include("S3.jl")
 
     @testset "account_id" begin
