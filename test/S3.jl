@@ -1,4 +1,3 @@
-using AWSCore
 using AWSTools.S3
 using FilePathsBase
 using UUIDs
