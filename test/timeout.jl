@@ -1,8 +1,6 @@
 using AWSTools: timeout
 
 @testset "timeout" begin
-    timeout(() -> nothing, 0)
-
     @testset "finish" begin
         secs = @elapsed begin
             result = timeout(() -> 0, 1)
@@ -39,10 +37,7 @@ using AWSTools: timeout
                 exception = e
             end
         end
-        @test exception isa CompositeException
-        @test length(exception.exceptions) == 1
-        @test exception.exceptions[1] isa CapturedException
-        @test exception.exceptions[1].ex == ErrorException("function error")
+        @test exception == ErrorException("function error")
         @test secs < 5
     end
 end
