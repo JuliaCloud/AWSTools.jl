@@ -1,4 +1,4 @@
-using AWSCore: AWSConfig
+using AWSCore: AWSConfig, AWSException
 using Base: CmdRedirect
 using Base64
 using Dates: datetime2unix, now
@@ -153,7 +153,7 @@ describe_stacks_patch = @patch function describe_stacks(config, args...; kwargs.
     access_key = config[:creds].access_key_id
     secret_key = config[:creds].secret_key
     if access_key == invalid_access_key && secret_key == invalid_secret_key
-        throw(AWSCore.AWSException(
+        throw(AWSException(
             HTTP.StatusError(403, "", "", HTTP.Messages.Response(403, """
                 <ErrorResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
                     <Error>
