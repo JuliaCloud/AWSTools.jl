@@ -67,6 +67,7 @@ AWSTools.ECR.get_login
 ### EC2
 
 ```@docs
+AWSTools.EC2.instance_metadata(::AbstractString)
 AWSTools.EC2.instance_availability_zone()
 AWSTools.EC2.instance_region()
 ```

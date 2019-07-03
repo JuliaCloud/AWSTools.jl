@@ -54,6 +54,7 @@ end
 @testset "AWSTools Tests" begin
 
     include("timeout.jl")
+    include("EC2.jl")
     include("S3.jl")
 
     @testset "account_id" begin
@@ -113,20 +114,6 @@ end
             for i in allow
                 resp = raw_stack_description("stackname")
                 @test resp == describe_stack_string(i)
-            end
-        end
-    end
-
-    @testset "EC2" begin
-        @testset "instance_availability_zone" begin
-            apply(instance_availability_zone_patch) do
-                @test instance_availability_zone() == "us-east-1a"
-            end
-        end
-
-        @testset "instance_region" begin
-            apply(instance_availability_zone_patch) do
-                @test instance_region() == "us-east-1"
             end
         end
     end
