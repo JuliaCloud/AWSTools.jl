@@ -18,11 +18,14 @@ function timeout(f::Function, seconds::Real)
             notify(c)
         end
 
-        # Create a timeout task which aborts the wait early if we hit the timeout
+        # Create a timeout task which aborts the wait early if we hit the timeout.
+        # Note: We use an async task here to ensure when `f` finishes before the timeout it
+        # is not blocked by the timer.
         @async begin
-            start = time()
-            while !istaskdone(t) && (time() - start) < seconds
-                sleep(1)
+            # Note: The `pollint` will may cause abort events to occur after the specified
+            # timeout. e.g. if `seconds = 1.5` then the abort would occur at 2 seconds.
+            timedwait(float(seconds); pollint=1.0) do
+                istaskdone(t)
             end
             notify(c)
         end
