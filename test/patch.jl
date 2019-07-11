@@ -26,10 +26,8 @@ sts_assume_role = @patch function sts(config::AWSConfig, op; RoleArn="", RoleSes
 end
 
 
-instance_availability_zone_patch = @patch function read(cmd::CmdRedirect, ::Type{String})
-    url = cmd.cmd.exec[2]
-    @test endswith(url, "availability-zone")
-    return "us-east-1a"
+function instance_metadata_patch(result)
+    @patch http_get(args...; kwargs...) = result
 end
 
 get_authorization_token_patch = @patch function get_authorization_token(config::AWSConfig; registryIds::AbstractVector=[])
