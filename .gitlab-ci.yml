@@ -9,8 +9,10 @@ stages:
 cache: {}
 
 include:
-  - https://gitlab.invenia.ca/infrastructure/gitlab-ci-helper/raw/master/templates/hidden-jobs.yml
-  - https://gitlab.invenia.ca/infrastructure/gitlab-ci-helper/raw/master/templates/teardown.yml
+  - project: infrastructure/gitlab-ci-helper
+    file: /templates/hidden-jobs.yml
+  - project: infrastructure/gitlab-ci-helper
+    file: /templates/teardown.yml
 
 variables:
   ONLINE: ""
