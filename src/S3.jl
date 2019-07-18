@@ -334,9 +334,9 @@ function sync_key(src::AbstractPath, path::AbstractPath)
         return ""
     elseif !isempty(src) && src in parents(path)
         # Remove `src` dir prefix
-        return replace(path, Regex("^\\Q$(src)\\E/?") => s"")
+        return replace(string(path), Regex("^\\Q$(src)\\E/?") => s"")
     else
-        return String(path)
+        return string(path)
     end
 end
 
