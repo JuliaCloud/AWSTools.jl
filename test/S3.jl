@@ -8,10 +8,6 @@ using AWSS3: s3_create_bucket, s3_put
 
 setlevel!(getlogger(AWSTools.S3), "info")
 
-# Temporary method to allow sorting until this is included in FilePathsBase
-# https://github.com/rofinn/FilePathsBase.jl/issues/31
-Base.isless(a::AbstractPath, b::AbstractPath) = string(a) < string(b)
-
 # Enables the running of the "batch" online tests. e.g ONLINE=batch
 const ONLINE = strip.(split(get(ENV, "ONLINE", ""), r"\s*,\s*"))
 
@@ -42,7 +38,7 @@ function compare(src_file::AbstractPath, dest_file::AbstractPath)
     @test modified(dest_file) >= modified(src_file)
 
     # Test file contents are equal
-    @test read(dest_file) == read(src_file)
+    @test read(dest_file, String) == read(src_file, String)
 end
 
 function compare_dir(src_dir::AbstractPath, dest_dir::AbstractPath)
@@ -299,7 +295,7 @@ end
 
                 # Test that syncing doesn't overwrite the newer file in dest
                 sync(src, dest)
-                @test read(dest_folder_file) != read(src_folder_file)
+                @test read(dest_folder_file, String) != read(src_folder_file, String)
             end
 
             @testset "Sync incompatible types" begin
@@ -611,7 +607,6 @@ end
                         # Modify a file in dest
                         s3_object = s3_objects[1]
                         file = join(dest, sync_key(src, s3_object))
-                        # Write to local file (should have newer timestamp)
                         write(file, "Modified in dest.")
 
                         # Syncing overwrites the newer file in dest because it is of
@@ -620,28 +615,26 @@ end
                         compare(s3_object, file)
                     end
 
-                    @testset "Test sync doesn't overwrite newer file in dest" begin
+                    @testset "Sync newer dest file" begin
                         # This is the case because a newer file of the same size is usually
                         # the result of an uploaded file always having a newer last_modified
-                        # time so shouldn't be overwritten each time.
+                        # time.
 
                         # Modify a file in dest
                         s3_object = s3_objects[1]
                         file = join(dest, sync_key(src, s3_object))
-                        # Write to local file (should have newer timestamp)
-                        write(file, "Diff")
+                        write(file, "Hello World.")
 
-                        # Test that syncing doesn't overwrite the newer file in the local
-                        # directory as they are the same size
+                        # Test that syncing doesn't overwrite the newer file in dest
                         sync(src, dest)
 
                         # Test file contents are not equal
-                        @test read(file) != read(s3_object)
+                        @test read(file, String) != read(s3_object)
                     end
 
                     @testset "Sync an object instead of a prefix" begin
                         s3_object_path = join(src, sync_key(src, s3_objects[1]))
-                        @test_throws ArgumentError sync(s3_object_path, dest)
+                        @test_throws ArgumentError sync(s3_object_path, folder)
                     end
                 end
             end
@@ -681,7 +674,7 @@ end
                                 @test list_files(dest) == [dest]
                                 @test isfile(dest)
                                 @test isdir(parent(dest))
-                                @test read(dest) == "Local file src"
+                                @test read(dest, String) == "Local file src"
                             end
                         finally
                             remove(dest; recursive=true)
@@ -702,7 +695,7 @@ end
                                     @test isa(dest_file, AbstractPath)
 
                                     @test list_files(dest) == [Path(dest_file)]
-                                    @test read(dest_file) == "Remote content"
+                                    @test read(dest_file, String) == "Remote content"
                                 end
                             end
 
@@ -714,8 +707,8 @@ end
                                     dest_file = download(src, dest; overwrite=true)
                                     @test isa(dest_file, AbstractPath)
 
-                                    @test dest_file == dest
-                                    @test read(dest) == "Remote content"
+                                    @test dest_file == String(dest)
+                                    @test read(dest, String) == "Remote content"
                                 end
                             end
 
@@ -823,7 +816,7 @@ end
                             # Test directories are the same
                             compare_dir(src_dir, dest_dir)
 
-                            @test read(dest_files[1]) == s3_objects[1]["Content"]
+                            @test read(dest_files[1], String) == s3_objects[1]["Content"]
                         end
 
                         @testset "Sync modified src file" begin
@@ -841,7 +834,7 @@ end
                             # Test directories are the same
                             compare_dir(src_dir, dest_dir)
 
-                            @test read(dest_files[1]) == s3_objects[1]["Content"]
+                            @test read(dest_files[1], String) == s3_objects[1]["Content"]
                         end
 
                         @testset "Sync newer file in dest" begin
@@ -858,7 +851,7 @@ end
                             # last_modified time.
                             sync(src_dir, dest_dir)
 
-                            file_contents = read(dest_files[1])
+                            file_contents = read(dest_files[1], String)
                             @test file_contents != s3_objects[1]["Content"]
                             @test file_contents ==  "Modified in dest"
                         end
@@ -868,7 +861,7 @@ end
                             file = "s3://" * join([obj["Bucket"], obj["Key"]], '/')
 
                             @test startswith(file, "s3://")
-                            @test_throws ArgumentError sync(Path(file), dest_dir)
+                            @test_throws ArgumentError sync(file, dest_dir)
                         end
 
                         remove(src_files[1])
@@ -905,7 +898,7 @@ end
                             compare_dir(src_dir, dest_dir)
 
                             # Test destination file was modifies
-                            @test read(dest_file) == "Test modified file in source"
+                            @test read(dest_file, String) == "Test modified file in source"
                         end
 
                         @testset "Sync non-existent directory" begin
