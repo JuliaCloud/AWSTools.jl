@@ -14,7 +14,7 @@ version = "0.5.0"
 deps = ["AWSCore", "AWSS3", "Base64", "Dates", "EzXML", "FilePathsBase", "HTTP", "MbedTLS", "Memento", "Mocking", "OrderedCollections", "Random", "Retry", "XMLDict"]
 path = ".."
 uuid = "83bcdc74-1232-581c-948a-f29122bf8259"
-version = "1.3.0+"
+version = "1.3.3"
 
 [[Base64]]
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
@@ -51,15 +51,15 @@ uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 
 [[DocStringExtensions]]
 deps = ["LibGit2", "Markdown", "Pkg", "Test"]
-git-tree-sha1 = "4d30e889c9f106a51ffa4791a88ffd4765bf20c3"
+git-tree-sha1 = "0513f1a8991e9d83255e0140aace0d0fc4486600"
 uuid = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
-version = "0.7.0"
+version = "0.8.0"
 
 [[Documenter]]
 deps = ["Base64", "DocStringExtensions", "InteractiveUtils", "JSON", "LibGit2", "Logging", "Markdown", "REPL", "Unicode"]
-git-tree-sha1 = "bb727cddc81525c55b70b56c3691fbf244d7728f"
+git-tree-sha1 = "580155ffaeb175f37dc0bd31ed6c127663efbc60"
 uuid = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
-version = "0.22.5"
+version = "0.22.6"
 
 [[EzXML]]
 deps = ["BinaryProvider", "Libdl", "Printf"]
