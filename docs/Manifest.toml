@@ -14,7 +14,7 @@ version = "0.5.0"
 deps = ["AWSCore", "AWSS3", "Base64", "Dates", "EzXML", "FilePathsBase", "HTTP", "MbedTLS", "Memento", "Mocking", "OrderedCollections", "Random", "Retry", "XMLDict"]
 path = ".."
 uuid = "83bcdc74-1232-581c-948a-f29122bf8259"
-version = "1.3.1"
+version = "1.3.3"
 
 [[Base64]]
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
@@ -68,10 +68,10 @@ uuid = "8f5d6c58-4d21-5cfd-889c-e3ad7ee6a615"
 version = "0.9.3"
 
 [[FilePathsBase]]
-deps = ["Dates", "LinearAlgebra", "Printf"]
-git-tree-sha1 = "7094868938630cf14d7ddeeee1c7834275d8e4ca"
+deps = ["Compat"]
+git-tree-sha1 = "230d04188b262b0795144a5907b495fbc3ce8131"
 uuid = "48062228-2e41-5def-b9a4-89aafe57970f"
-version = "0.5.0"
+version = "0.4.0"
 
 [[HTTP]]
 deps = ["Base64", "Dates", "IniFile", "MbedTLS", "Sockets"]

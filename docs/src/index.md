@@ -79,7 +79,7 @@ AWSTools.EC2.instance_region()
 ```@docs
 AWSTools.S3.S3Path
 AWSTools.S3.S3Path(::Tuple)
-AWSTools.S3.S3Path(::AbstractString)
+AWSTools.S3.S3Path(::FilePathsBase.AbstractPath)
 AWSTools.S3.S3Path(::AbstractString, ::AbstractString)
 AWSTools.S3.sync(::AbstractString, ::AbstractString)
 AWSTools.S3.sync(::FilePathsBase.AbstractPath, ::FilePathsBase.AbstractPath)
