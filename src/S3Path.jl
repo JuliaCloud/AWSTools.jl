@@ -86,19 +86,17 @@ function S3Path(
     return S3Path(pieces, bucket, key, size, last_modified)
 end
 
-FilePathsBase.ispathtype(::Type{S3Path}, str::AbstractString) = startswith(str, "s3://")
-
 function Base.:(==)(a::S3Path, b::S3Path)
     return a.parts == b.parts && a.bucket == b.bucket && a.key == b.key
 end
 
 # The following should be implemented in the concrete types
-Base.String(object::S3Path) = joinpath(parts(object)...)
 FilePathsBase.parts(object::S3Path) = object.parts
-root(path::S3Path) = ""
+FilePathsBase.root(path::S3Path) = ""
+FilePathsBase.drive(path::S3Path) = ""
+FilePathsBase.ispathtype(::Type{S3Path}, str::AbstractString) = startswith(str, "s3://")
 
 # S3Path specific methods
-Base.show(io::IO, object::S3Path) = print(io, "p\"$(String(object))\"")
 Base.real(object::S3Path) = object
 
 # Note: that modified and size are not nesc true information
@@ -174,11 +172,11 @@ function Base.readdir(path::S3Path; config::AWSConfig=aws_config())
 end
 
 function Base.read(path::S3Path, ::Type{String}; config::AWSConfig=aws_config())
-    return String(read(path; config=config))
+    return String(@mock s3_get(config, path.bucket, path.key))
 end
 
 function Base.read(path::S3Path; config::AWSConfig=aws_config())
-    return @mock s3_get(config, path.bucket, path.key)
+    return read(path, String; config=config)
 end
 
 function Base.write(
