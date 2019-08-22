@@ -11,8 +11,6 @@ using OrderedCollections: OrderedDict
 using Retry
 using XMLDict
 
-export S3Path, sync, upload
-
 include("S3Path.jl")
 
 const logger = getlogger(@__MODULE__)
@@ -22,68 +20,6 @@ const logger = getlogger(@__MODULE__)
 # `MyModule.logger` won't be registered at runtime.
 function __init__()
     Memento.register(logger)
-    FilePathsBase.register(S3Path)
-end
-
-
-# modified version of the function from AWSS3.jl with the delimiter parameter removed
-# https://github.com/samoconnor/AWSS3.jl/issues/34
-"""
-    _s3_list_objects([::AWSConfig], bucket, [path_prefix]; max_items=nothing)
-
-[List Objects](http://docs.aws.amazon.com/AmazonS3/latest/API/RESTBucketGET.html)
-in `bucket` with optional `path_prefix`.
-
-Returns `Vector{Dict}` with keys `Key`, `LastModified`, `ETag`, `Size`,
-`Owner`, `StorageClass`.
-"""
-function _s3_list_objects(aws::AWSConfig, bucket, path_prefix=""; max_items=nothing)
-
-    more = true
-    objects = []
-    num_objects = 0
-    marker = ""
-
-    while more
-
-        q = Dict{String, String}()
-        if path_prefix != ""
-            q["prefix"] = path_prefix
-        end
-        if marker != ""
-            q["marker"] = marker
-        end
-        if max_items !== nothing
-            # Note: AWS seems to only return up to 1000 items
-            q["max-keys"] = string(max_items - num_objects)
-        end
-
-        @repeat 4 try
-
-            r = AWSS3.s3(aws, "GET", bucket; query = q)
-
-            # FIXME return an iterator to allow streaming of truncated results!
-            if haskey(r, "Contents")
-                l = isa(r["Contents"], Vector) ? r["Contents"] : [r["Contents"]]
-                for object in l
-                    push!(objects, xml_dict(object))
-                    num_objects += 1
-                    marker = object["Key"]
-                end
-            end
-
-            more = r["IsTruncated"] == "true" && (max_items === nothing || num_objects < max_items)
-        catch e
-            @delay_retry if ecode(e) in ["NoSuchBucket"] end
-        end
-    end
-
-    return objects
-end
-
-# Default config in first posistion
-function _s3_list_objects(args...; kwargs...)
-    return _s3_list_objects(aws_config(), args...; kwargs...)
 end
 
 """
@@ -128,14 +64,9 @@ function sync(
 
     # Locally version many codes to insert config as needed
     _isdir(path) = FilePathsBase.isdir(path)
-    _isdir(path::S3Path) = FilePathsBase.isdir(path; config=config)
     _isfile(path) = FilePathsBase.isfile(path)
-    _isfile(path::S3Path) = FilePathsBase.isfile(path; config=config)
-
     _mkdir(path; kwargs...) = FilePathsBase.mkdir(path; kwargs...)
-    _mkdir(path::S3Path; kwargs...) = FilePathsBase.mkdir(path; config=config, kwargs...)
-    _remove(path) = FilePathsBase.remove(path)
-    _remove(path::S3Path) = FilePathsBase.remove(path; config=config)
+    _remove(path) = FilePathsBase.rm(path)
 
 
     # Verify the S3 src file or directory exists
@@ -212,7 +143,7 @@ function sync(
                 )
 
                 info(logger, "delete: $curr_path")
-                @async remove(curr_path)
+                @async rm(curr_path)
             end
             # Clean up empty folders on local file system
             cleanup_empty_folders(dest)
@@ -226,23 +157,18 @@ function sync_path(src::AbstractPath, dest::AbstractPath; kwargs...)
 
     # Log `copy` operation for local paths since this isn't logged in FilePathsBase
     info(logger, "copy: $src to $dest")
-    copy(src, dest; overwrite=true, exist_ok=true)
+    cp(src, dest; force=true)
 end
 
-function sync_path(src::AbstractPath, dest::S3Path; config::AWSConfig=aws_config())
-    copy(src, dest; overwrite=true, exist_ok=true, config=config)
-end
+sync_path(src::AbstractPath, dest::S3Path) = cp(src, dest; force=true)
 
-function sync_path(src::S3Path, dest::S3Path; config::AWSConfig=aws_config())
-    copy(src, dest; overwrite=true, exist_ok=true, config=config)
-end
+sync_path(src::S3Path, dest::S3Path) = cp(src, dest; force=true)
 
-function sync_path(src::S3Path, dest::AbstractPath; config::AWSConfig=aws_config())
+function sync_path(src::S3Path, dest::AbstractPath)
     # Make sure parent directory exists
     mkdir(parent(dest); recursive=true, exist_ok=true)
-    copy(src, dest; overwrite=true, exist_ok=true, config=config)
+    cp(src, dest; force=true)
 end
-
 
 """
     list_files(path::AbstractPath) -> Vector{AbstractPath}
@@ -273,13 +199,15 @@ end
 List all the objects in an s3 bucket that include the specified s3 path's key as a prefix
 in their key.
 """
-function list_files(path::S3Path; config::AWSConfig=aws_config())
+function list_files(path::S3Path)
     all_objects = Vector{AbstractPath}()
 
-    all_items = @mock _s3_list_objects(config, path.bucket, path.key)
+    all_items = @mock s3_list_objects(path.config, path.bucket, path.key; delimiter="/")
 
     for item in all_items
         # Remove the ending `Z` from LastModified field
+        haskey(item, "LastModified") || continue
+
         last_modified_str = if item["LastModified"][end] == 'Z'
             item["LastModified"][1:end - 1]
         else
@@ -287,13 +215,8 @@ function list_files(path::S3Path; config::AWSConfig=aws_config())
         end
         last_modified = DateTime(last_modified_str)
 
-        object = S3Path(
-            path.bucket,
-            item["Key"];
-            size=parse(Int, item["Size"]),
-            last_modified=last_modified,
-        )
-        !isdir(object; config=config) && push!(all_objects, object)
+        object = S3Path(string("s3://", path.bucket, "/", item["Key"]))
+        !isdir(object) && push!(all_objects, object)
     end
 
     return all_objects
@@ -313,7 +236,7 @@ function cleanup_empty_folders(path::AbstractPath)
         end
         # Delete folder if it is empty
         if isempty(readdir(path))
-            remove(path)
+            rm(path)
         end
     end
 end
