@@ -13,6 +13,8 @@ using XMLDict
 
 include("S3Path.jl")
 
+export S3Path, upload
+
 const logger = getlogger(@__MODULE__)
 
 # Register the module level logger at runtime so that folks can access the logger via
@@ -20,6 +22,7 @@ const logger = getlogger(@__MODULE__)
 # `MyModule.logger` won't be registered at runtime.
 function __init__()
     Memento.register(logger)
+    @warn "S3Path has moved to AWSS3"
 end
 
 """
