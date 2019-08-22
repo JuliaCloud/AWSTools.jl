@@ -77,10 +77,6 @@ AWSTools.EC2.instance_region()
 #### Exported
 
 ```@docs
-AWSTools.S3.S3Path
-AWSTools.S3.S3Path(::Tuple)
-AWSTools.S3.S3Path(::AbstractString)
-AWSTools.S3.S3Path(::AbstractString, ::AbstractString)
 AWSTools.S3.sync(::AbstractString, ::AbstractString)
 AWSTools.S3.sync(::FilePathsBase.AbstractPath, ::FilePathsBase.AbstractPath)
 AWSTools.S3.upload
@@ -95,4 +91,3 @@ AWSTools.S3.cleanup_empty_folders(::FilePathsBase.AbstractPath)
 AWSTools.S3.sync_key(::FilePathsBase.AbstractPath, ::FilePathsBase.AbstractPath)
 AWSTools.S3.should_sync
 ```
-
