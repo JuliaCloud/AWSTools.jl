@@ -5,10 +5,10 @@ uuid = "4f1ea46c-232b-54a6-9b17-cc2d0f3e6598"
 version = "0.6.0"
 
 [[AWSS3]]
-deps = ["AWSCore", "Base64", "DataStructures", "Dates", "EzXML", "HTTP", "MbedTLS", "Retry", "SymDict", "Test", "XMLDict"]
-git-tree-sha1 = "4b7387c999f8c589542d1a449669d68a86583eca"
+deps = ["AWSCore", "Base64", "DataStructures", "Dates", "EzXML", "FilePathsBase", "HTTP", "MbedTLS", "Retry", "SymDict", "UUIDs", "XMLDict"]
+git-tree-sha1 = "2597139164e2f669e6f47329f58f93c55f7e9924"
 uuid = "1c724243-ef5b-51ab-93f4-b0a88ac62a95"
-version = "0.5.0"
+version = "0.6.0"
 
 [[AWSTools]]
 deps = ["AWSCore", "AWSS3", "Base64", "Dates", "EzXML", "FilePathsBase", "HTTP", "MbedTLS", "Memento", "Mocking", "OrderedCollections", "Random", "Retry", "XMLDict"]
@@ -63,21 +63,21 @@ version = "0.22.6"
 
 [[EzXML]]
 deps = ["BinaryProvider", "Libdl", "Printf"]
-git-tree-sha1 = "724e13b7522563a18ae4a5cc4a9792ae3b0da3e6"
+git-tree-sha1 = "aed48d722e528bc634bd36a7d0e090fa2952a3c0"
 uuid = "8f5d6c58-4d21-5cfd-889c-e3ad7ee6a615"
-version = "0.9.3"
+version = "0.9.4"
 
 [[FilePathsBase]]
-deps = ["Dates", "LinearAlgebra", "Printf"]
-git-tree-sha1 = "7094868938630cf14d7ddeeee1c7834275d8e4ca"
+deps = ["Dates", "LinearAlgebra", "Printf", "Test", "UUIDs"]
+git-tree-sha1 = "fe0fbbcf56af2000b5ba85f63245a3ed48854b29"
 uuid = "48062228-2e41-5def-b9a4-89aafe57970f"
-version = "0.5.0"
+version = "0.6.0"
 
 [[HTTP]]
 deps = ["Base64", "Dates", "IniFile", "MbedTLS", "Sockets"]
-git-tree-sha1 = "03ddc88af7f2d963fac5aa9f3ac8e11914d68a78"
+git-tree-sha1 = "c4a527dba1d26add0e85946e1a53f42a1b343acc"
 uuid = "cd3eb016-35fb-5094-929b-558a96fad6f3"
-version = "0.8.4"
+version = "0.8.5"
 
 [[IniFile]]
 deps = ["Test"]
