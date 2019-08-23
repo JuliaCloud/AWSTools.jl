@@ -6,7 +6,6 @@ using AWSTools.CloudFormation: stack_output
 using AWSTools.S3: list_files, sync_key, sync, upload
 using AWSS3: AWSS3, S3Path, s3_create_bucket, s3_put
 
-# setlevel!(getlogger(AWSTools.S3), "info")
 
 # Temporary method to allow sorting until this is included in FilePathsBase
 # https://github.com/rofinn/FilePathsBase.jl/issues/31
