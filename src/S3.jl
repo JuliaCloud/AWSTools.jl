@@ -13,7 +13,7 @@ using XMLDict
 
 include("S3Path.jl")
 
-export S3Path, upload
+export S3Path, sync, upload
 
 const logger = getlogger(@__MODULE__)
 
@@ -22,8 +22,13 @@ const logger = getlogger(@__MODULE__)
 # `MyModule.logger` won't be registered at runtime.
 function __init__()
     Memento.register(logger)
-    @warn "S3Path has moved to AWSS3"
+    @warn(
+        "S3Path has moved to AWSS3 and sync will be removed " *
+        "in a future release in favour of FilePathsBase.sync."
+    )
 end
+
+# TODO: Remove the sync methods below as they are now pirating.
 
 """
     sync(src::AbstractString, dest::AbstractString; delete::Bool=false)
@@ -38,7 +43,7 @@ and including the ending `/` that differentiates S3 folders from objects).
 If the delete flag is set then files that exist in the destination but not the source will
 be deleted.
 """
-function sync(
+function FilePathsBase.sync(
     src::AbstractString,
     dest::AbstractString;
     delete::Bool=false,
@@ -57,9 +62,9 @@ or more files.
 If the delete flag is set then files that exist in the destination but not the source will
 be deleted.
 """
-function sync(
-    src::AbstractPath,
-    dest::AbstractPath;
+function FilePathsBase.sync(
+    src::S3Path,
+    dest::S3Path;
     delete::Bool=false,
     config::AWSConfig=aws_config(),
 )

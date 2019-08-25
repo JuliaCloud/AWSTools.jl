@@ -110,8 +110,6 @@ end
         @test path1.drive == "s3://bucket"
         @test path1.segments == pieces
 
-        @test_broken isdir(path1)
-
         # Test joins with folder
         joined_path = join(path1, "myfile")
         @test joined_path == S3Path("s3://$bucket/$(key)myfile")
@@ -129,8 +127,6 @@ end
         @test path1.drive == "s3://bucket"
         @test path1.segments == pieces
 
-        @test_broken isdir(path1)
-
         # Test joins with bucket
         joined_path = join(path1, "myfile")
         @test joined_path == S3Path("s3://$bucket/$(key)myfile")
@@ -141,7 +137,6 @@ end
         @test joined_path.segments == ("folder",)
 
         joined_path = join(path1, "")
-        @test_broken joined_path == path1
         @test joined_path.segments == pieces
     end
 
@@ -157,7 +152,7 @@ end
     @testset "Syncing" begin
         @testset "Sync two local directories" begin
             # Create files to sync
-            src = Path(mktempdir())
+            src = mktmpdir()
             src_file = join(src, "file1")
             write(src_file, "Hello World!")
 
@@ -172,7 +167,9 @@ end
             write(src_folder2_file, "Test")
 
             # Sync files
-            dest = Path(mktempdir())
+            dest = mktmpdir()
+            @show src dest
+            @test isdir(dest)
             sync(src, dest)
 
             # Test directories are the same
@@ -271,24 +268,15 @@ end
             @testset "Sync empty directory" begin
                 rm(src; recursive=true)
 
-                sync(src, dest, delete=true)
-
-                @test isempty(readdir(src))
-                @test !isfile(dest) && !isdir(dest)
+                @test_throws ArgumentError sync(src, dest, delete=true)
             end
 
             @testset "Sync non existent directories" begin
-                rm(src; recursive=true)
+                isdir(src) && rm(src; recursive=true)
                 isdir(dest) && rm(dest; recursive=true)
 
                 # Test syncing creates non existent local directories
-                sync(src, dest)
-
-                @test isdir(src)
-                @test isdir(dest)
-
-                rm(src)
-                rm(dest)
+                @test_throws ArgumentError sync(src, dest)
             end
         end
 
@@ -318,7 +306,6 @@ end
 
                                 @test list_files(dest) == []
                                 @test !isfile(dest)
-                                @test_broken !isdir(parent(dest))
 
                                 uploaded_file = upload(Path(src), dest)
                                 @test isa(uploaded_file, S3Path)
