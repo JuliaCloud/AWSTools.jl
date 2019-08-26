@@ -394,8 +394,23 @@ end
                         rm(src_dir; recursive=true)
                         rm(dest_dir; recursive=true)
 
+                        # Make the src S3 directory
+                        mkdir(src_dir; recursive=true)
+                        mkdir(dest_dir; recursive=true)
+
                         # Note: using `lstrip` for when `key_prefix` is empty
+                        # We also include the "folder" objects in this list.
                         s3_objects = [
+                            Dict(
+                                "Bucket" => bucket,
+                                "Key" => lstrip("$key_prefix/folder1/", '/'),
+                                "Content" => "",
+                            ),
+                            Dict(
+                                "Bucket" => bucket,
+                                "Key" => lstrip("$key_prefix/folder1/folder/", '/'),
+                                "Content" => "",
+                            ),
                             Dict(
                                 "Bucket" => bucket,
                                 "Key" => lstrip("$key_prefix/folder1/file1", '/'),
@@ -455,16 +470,16 @@ end
                             # Test directories are the same
                             compare_dir(src_dir, dest_dir)
 
-                            @test read(dest_files[1], String) == s3_objects[1]["Content"]
+                            @test read(dest_files[1], String) == s3_objects[3]["Content"]
                         end
 
                         @testset "Sync modified src file" begin
                             # Modify a file in src
-                            s3_objects[1]["Content"] = "Modified in src."
+                            s3_objects[3]["Content"] = "Modified in src."
                             s3_put(
-                                s3_objects[1]["Bucket"],
-                                s3_objects[1]["Key"],
-                                s3_objects[1]["Content"],
+                                s3_objects[3]["Bucket"],
+                                s3_objects[3]["Key"],
+                                s3_objects[3]["Content"],
                             )
 
                             # Test that syncing overwrites the modified file in dest
@@ -473,7 +488,7 @@ end
                             # Test directories are the same
                             compare_dir(src_dir, dest_dir)
 
-                            @test read(dest_files[1], String) == s3_objects[1]["Content"]
+                            @test read(dest_files[1], String) == s3_objects[3]["Content"]
                         end
 
                         @testset "Sync newer file in dest" begin
@@ -491,15 +506,16 @@ end
                             sync(src_dir, dest_dir)
 
                             file_contents = read(dest_files[1], String)
-                            @test file_contents != s3_objects[1]["Content"]
+                            @test file_contents != s3_objects[3]["Content"]
                             @test file_contents ==  "Modified in dest"
                         end
 
                         @testset "Sync s3 bucket with object prefix" begin
-                            obj = s3_objects[1]
+                            obj = s3_objects[3]
                             file = "s3://" * join([obj["Bucket"], obj["Key"]], '/')
 
                             @test startswith(file, "s3://")
+                            @show file
                             @test_throws ArgumentError sync(Path(file), dest_dir)
                         end
 

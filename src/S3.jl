@@ -11,6 +11,8 @@ using OrderedCollections: OrderedDict
 using Retry
 using XMLDict
 
+import FilePathsBase: sync
+
 include("S3Path.jl")
 
 export S3Path, sync, upload
@@ -29,135 +31,7 @@ function __init__()
 end
 
 # TODO: Remove the sync methods below as they are now pirating.
-
-"""
-    sync(src::AbstractString, dest::AbstractString; delete::Bool=false)
-
-Syncs local directories and S3 prefixes. Recursively copies new and updated files from the
-source path to the destination. Only creates folders in the destination if they contain
-one or more files.
-
-Source and destination can be local file paths or s3 paths (formatted as "s3://bucket/key"
-and including the ending `/` that differentiates S3 folders from objects).
-
-If the delete flag is set then files that exist in the destination but not the source will
-be deleted.
-"""
-function FilePathsBase.sync(
-    src::AbstractString,
-    dest::AbstractString;
-    delete::Bool=false,
-    config::AWSConfig=aws_config(),
-)
-    sync(Path(src), Path(dest); delete=delete, config=config)
-end
-
-"""
-    sync(src::AbstractPath, dest::AbstractPath; delete::Bool=false)
-
-Syncs directories and S3 prefixes. Recursively copies new and updated files from the source
-path to the destination. Only creates folders in the destination if they contain one
-or more files.
-
-If the delete flag is set then files that exist in the destination but not the source will
-be deleted.
-"""
-function FilePathsBase.sync(
-    src::S3Path,
-    dest::S3Path;
-    delete::Bool=false,
-    config::AWSConfig=aws_config(),
-)
-    info(logger, "syncing: $src to $dest")
-
-    # Locally version many codes to insert config as needed
-    _isdir(path) = FilePathsBase.isdir(path)
-    _isfile(path) = FilePathsBase.isfile(path)
-    _mkdir(path; kwargs...) = FilePathsBase.mkdir(path; kwargs...)
-    _remove(path) = FilePathsBase.rm(path)
-
-
-    # Verify the S3 src file or directory exists
-    if isa(src, S3Path) && !_isfile(src) && !_isdir(src)
-        error(
-            "Attemping to sync non-existent S3Path \"$src\". Please verify the file or " *
-            "directory exists and that the ending `/` was included if syncing an S3 " *
-            "directory."
-        )
-    end
-
-    # Make sure src and dest directories exist
-    if !isa(src, S3Path) && !_isdir(src) && !_isfile(src)
-        _mkdir(src; recursive=true)
-    end
-    if !isa(dest, S3Path) && _isdir(src) && !_isdir(dest) && !_isfile(dest)
-        _mkdir(dest; recursive=true, exist_ok=true)
-    end
-
-    # Verify src and dest directories are compatible
-    if _isfile(src) && _isdir(dest)
-        throw(ArgumentError("Cannot sync file $src to a directory ($dest)"))
-
-    elseif _isdir(src) && _isfile(dest)
-        throw(ArgumentError("Cannot sync directory $src to a file ($dest)"))
-
-    # Sync two files
-    elseif _isfile(src)
-        # Copy src file to the destination
-        sync_path(src, dest; config=config)
-
-    # Sync two directories
-    else
-        src_files = Dict()
-        dest_files = Dict()
-
-        # Map files in src and dest with their sync keys
-        for file in list_files(src; config=config)
-            src_files[sync_key(src, file)] = file
-        end
-        for file in list_files(dest; config=config)
-            dest_files[sync_key(dest, file)] = file
-        end
-
-        src_keys = Set(keys(src_files))
-        dest_keys = Set(keys(dest_files))
-
-        # Copy new or modified files to their corresponding destination paths
-        to_sync = filter(src_keys) do x
-            should_sync(
-                src_files[x],
-                get(dest_files, x, nothing)
-            )
-        end
-
-        @sync for key in to_sync
-            curr_src = src_files[key]
-            curr_dest = join(dest, sync_key(src, src_files[key]))
-
-            # Copy src file to the destination
-            @async sync_path(curr_src, curr_dest; config=config)
-        end
-
-        # If delete is true, delete the files that exist in the dest but not the src
-        if delete
-            to_delete = setdiff(dest_keys, src_keys)
-
-            @sync for key in to_delete
-                curr_path = dest_files[key]
-                debug(
-                    logger,
-                    "syncing: (None) -> $curr_path (remove), file does not exist at " *
-                    "source ($src/$(sync_key(dest, curr_path))) and delete mode enabled"
-                )
-
-                info(logger, "delete: $curr_path")
-                @async rm(curr_path)
-            end
-            # Clean up empty folders on local file system
-            cleanup_empty_folders(dest)
-        end
-    end
-end
+@deprecate sync(src::AbstractString, dest::AbstractString; delete::Bool=false, config::AWSConfig=aws_config()) sync(Path(src), Path(dest); delete=delete)
 
 function sync_path(src::AbstractPath, dest::AbstractPath; kwargs...)
     # Make sure parent directory exists
