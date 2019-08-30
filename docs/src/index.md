@@ -77,8 +77,6 @@ AWSTools.EC2.instance_region()
 #### Exported
 
 ```@docs
-AWSTools.S3.sync(::AbstractString, ::AbstractString)
-AWSTools.S3.sync(::FilePathsBase.AbstractPath, ::FilePathsBase.AbstractPath)
 AWSTools.S3.upload
 ```
 
