@@ -4,7 +4,7 @@ using UUIDs
 
 using AWSTools.CloudFormation: stack_output
 using AWSTools.S3: list_files, sync_key, sync, upload
-using AWSS3: AWSS3, S3Path, s3_create_bucket, s3_put
+using AWSS3: AWSS3, S3Path, s3_create_bucket, s3_put, s3_delete_bucket
 
 
 # Temporary method to allow sorting until this is included in FilePathsBase
@@ -580,7 +580,8 @@ end
                         s3_bucket_dir = replace(s3_prefix, r"^(s3://[^/]+).*$" => s"\1")
                         bucket, key = bucket_and_key(s3_bucket_dir)
                         @info "Deleting S3 bucket $bucket"
-                        rm(Path("s3://$bucket"); recursive=true)
+                        rm(Path("s3://$bucket/"); recursive=true)
+                        s3_delete_bucket(bucket)
                     end
                 end
             end
