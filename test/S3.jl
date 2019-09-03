@@ -3,7 +3,7 @@ using FilePathsBase
 using UUIDs
 
 using AWSTools.CloudFormation: stack_output
-using AWSTools.S3: list_files, sync_key, sync, upload
+using AWSTools.S3: sync, upload
 using AWSS3: AWSS3, S3Path, s3_create_bucket, s3_put, s3_delete_bucket
 
 
@@ -35,27 +35,29 @@ end
 
 
 function compare(src_file::AbstractPath, dest_file::AbstractPath)
-    @test isfile(dest_file)
-    @test basename(dest_file) == basename(src_file)
-    @test size(dest_file) == size(src_file)
-    @test modified(dest_file) >= modified(src_file)
+    if isdir(src_file)
+        @test isdir(dest_file)
+        @test basename(src_file) == basename(dest_file)
+    else
+        @test isfile(src_file)
+        @test isfile(dest_file)
+        @test basename(dest_file) == basename(src_file)
+        @test size(dest_file) == size(src_file)
+        @test modified(dest_file) >= modified(src_file)
 
-    # Test file contents are equal
-    @test read(dest_file) == read(src_file)
+        # Test file contents are equal
+        @test read(dest_file) == read(src_file)
+    end
 end
 
 function compare_dir(src_dir::AbstractPath, dest_dir::AbstractPath)
     @test isdir(dest_dir)
 
-    src_contents = sort!(list_files(src_dir))
-    dest_contents = sort!(list_files(dest_dir))
+    src_contents = collect(walkpath(src_dir))
+    dest_contents = collect(walkpath(dest_dir))
 
-    src_keys = map(x -> sync_key(src_dir, x), src_contents)
-    dest_keys = map(x -> sync_key(dest_dir, x), dest_contents)
-    @test src_keys == dest_keys
-
-    for i in 1:length(src_contents)
-        compare(src_contents[i], dest_contents[i])
+    for (src, dst) in zip(src_contents, dest_contents)
+        compare(src, dst)
     end
 end
 
@@ -304,13 +306,12 @@ end
                                 write(stream, "Local file src")
                                 close(stream)
 
-                                @test list_files(dest) == []
-                                @test !isfile(dest)
+                                @test !exists(dest)
 
                                 uploaded_file = upload(Path(src), dest)
                                 @test isa(uploaded_file, S3Path)
 
-                                @test list_files(dest) == [dest]
+                                @test exists(dest)
                                 @test isfile(dest)
                                 @test isdir(parent(dest))
                                 @test read(dest, String) == "Local file src"
@@ -333,7 +334,7 @@ end
                                     dest_file = download(src, dest)
                                     @test isa(dest_file, AbstractPath)
 
-                                    @test list_files(dest) == [Path(dest_file)]
+                                    @test exists(Path(dest_file))
                                     @test read(dest_file, String) == "Remote content"
                                 end
                             end
@@ -436,8 +437,8 @@ end
                         # Sync files passing in directories as strings
                         sync(string(src_dir), string(dest_dir))
 
-                        src_files = list_files(src_dir)
-                        dest_files = list_files(dest_dir)
+                        src_files = collect(walkpath(src_dir))
+                        dest_files = collect(walkpath(dest_dir))
 
                         # Test destination directory has expected files
                         @test !isempty(dest_files)
@@ -524,8 +525,10 @@ end
                         @testset "Sync deleted file with no delete flag" begin
                             sync(src_dir, dest_dir)
 
-                            src_files = list_files(src_dir)
-                            dest_files = list_files(dest_dir)
+                            # We collect the walkpath result because we want it to complete
+                            # before checking the length
+                            src_files = collect(walkpath(src_dir))
+                            dest_files = collect(walkpath(dest_dir))
 
                             @test length(dest_files) == length(src_files) + 1
                         end
@@ -534,8 +537,10 @@ end
                             # Test that syncing deletes the file in dest
                             sync(src_dir, dest_dir; delete=true)
 
-                            src_files = list_files(src_dir)
-                            dest_files = list_files(dest_dir)
+                            # We collect the walkpath result because we want it to complete
+                            # before checking the length
+                            src_files = collect(walkpath(src_dir))
+                            dest_files = collect(walkpath(dest_dir))
                             @test length(dest_files) == length(src_files)
                         end
 
@@ -562,11 +567,11 @@ end
                             # Error because src folder doesn't exist
                             # @test_throws ErrorException sync(src_dir, dest_dir; delete=true)
 
-                            src_files = list_files(src_dir)
+                            src_files = collect(walkpath(src_dir))
                             @test isempty(src_files)
 
                             rm(dest_dir; recursive=true)
-                            dest_files = list_files(dest_dir)
+                            dest_files = collect(walkpath(dest_dir))
                             @test isempty(dest_files)
                         end
                     end
