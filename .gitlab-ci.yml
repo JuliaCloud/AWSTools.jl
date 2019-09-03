@@ -1,8 +1,4 @@
-stages:
-  - test
-  - online-test
-  - teardown
-
+---
 # Disable GitLab CI's default cache policy of "pull-push"
 # https://docs.gitlab.com/ee/ci/yaml/#cache-policy
 # https://docs.gitlab.com/ce/ci/caching/index.html#disabling-cache-on-specific-jobs
@@ -10,54 +6,15 @@ cache: {}
 
 include:
   - project: infrastructure/gitlab-ci-helper
-    file: /templates/hidden-jobs.yml
-  - project: infrastructure/gitlab-ci-helper
-    file: /templates/teardown.yml
+    file: /templates/julia.yml
 
 variables:
+  # Only include Mac & Linux 64-bit jobs in the job matrix
+  platform: "64-bit"
   ONLINE: ""
 
-"1.0 (Mac)":
-  tags:
-    - mac
-    - shell-ci
-  extends: .test_shell_1_0
-
-"1.0 (Linux, 64-bit)":
-  tags:
-    - linux
-    - 64-bit
-    - docker-ci
-  extends: .test_docker_1_0
-
-"1.1 (Mac)":
-  tags:
-    - mac
-    - shell-ci
-  extends: .test_shell_1_1
-
-"1.1 (Linux, 64-bit)":
-  tags:
-    - linux
-    - 64-bit
-    - docker-ci
-  extends: .test_docker_1_1
-
-"Nightly (Mac)":
-  tags:
-    - mac
-    - shell-ci
-  extends: .test_shell_nightly
-
-"Nightly (Linux, 64-bit)":
-  tags:
-    - linux
-    - 64-bit
-    - docker-ci
-  extends: .test_docker_nightly
-
 "Online Tests":
-  stage: online-test
+  stage: test
   tags:
     - linux
     - docker-build
