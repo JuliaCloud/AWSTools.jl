@@ -4,13 +4,8 @@ module S3
 using AWSCore
 using AWSS3
 using Dates
-using EzXML
 using FilePathsBase
 using Memento
-using Mocking
-using OrderedCollections: OrderedDict
-using Retry
-using XMLDict
 
 import FilePathsBase: sync
 

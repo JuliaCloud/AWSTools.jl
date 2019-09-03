@@ -6,11 +6,6 @@ using AWSTools.CloudFormation: stack_output
 using AWSTools.S3: sync, upload
 using AWSS3: AWSS3, S3Path, s3_create_bucket, s3_put, s3_delete_bucket
 
-
-# Temporary method to allow sorting until this is included in FilePathsBase
-# https://github.com/rofinn/FilePathsBase.jl/issues/31
-Base.isless(a::AbstractPath, b::AbstractPath) = string(a) < string(b)
-
 # Enables the running of the "batch" online tests. e.g ONLINE=batch
 const ONLINE = strip.(split(get(ENV, "ONLINE", ""), r"\s*,\s*"))
 
@@ -170,7 +165,6 @@ end
 
             # Sync files
             dest = mktmpdir()
-            @show src dest
             @test isdir(dest)
             sync(src, dest)
 
@@ -516,7 +510,6 @@ end
                             file = "s3://" * join([obj["Bucket"], obj["Key"]], '/')
 
                             @test startswith(file, "s3://")
-                            @show file
                             @test_throws ArgumentError sync(Path(file), dest_dir)
                         end
 
@@ -565,7 +558,7 @@ end
                             rm(src_dir; recursive=true)
 
                             # Error because src folder doesn't exist
-                            # @test_throws ErrorException sync(src_dir, dest_dir; delete=true)
+                            @test_throws ArgumentError sync(src_dir, dest_dir; delete=true)
 
                             src_files = collect(walkpath(src_dir))
                             @test isempty(src_files)
