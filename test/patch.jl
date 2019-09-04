@@ -246,7 +246,7 @@ end
 
 function s3_patches!(content::AbstractDict, changes::Set=Set(Pair{Symbol, Any}[]))
     return [
-        @patch function _s3_list_objects(config::AWSConfig, bucket, path_prefix; kwargs...)
+        @patch function s3_list_objects(config::AWSConfig, bucket, path_prefix; kwargs...)
             results = []
             for ((b, key), data) in content
                 if b == bucket && startswith(key, path_prefix)
@@ -257,7 +257,7 @@ function s3_patches!(content::AbstractDict, changes::Set=Set(Pair{Symbol, Any}[]
         end
 
         # https://github.com/invenia/Mocking.jl/issues/59
-        # @patch _s3_list_objects(args...) = _s3_list_objects(aws_config(), args...)
+        # @patch s3_list_objects(args...) = s3_list_objects(aws_config(), args...)
 
         @patch function s3_get(config::AWSConfig, bucket, path; kwargs...)
             codeunits(get(content[(bucket, path)], "Content", ""))

@@ -2,9 +2,10 @@ module AWSTools
 
 using AWSCore
 using AWSCore.Services: sts
+using AWSS3
 using Mocking
 using Random
-using Dates: unix2datetime
+using Dates: Period, unix2datetime
 export assume_role
 
 get_caller_identity() = sts("GetCallerIdentity")
