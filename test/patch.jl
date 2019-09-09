@@ -268,8 +268,8 @@ function s3_patches!(content::AbstractDict, changes::Set=Set(Pair{Symbol, Any}[]
             return results
         end
 
-        # https://github.com/invenia/Mocking.jl/issues/59
-        # @patch s3_list_objects(args...) = s3_list_objects(aws_config(), args...)
+        # Patch calling another patch
+        @patch s3_list_objects(args...) = @mock s3_list_objects(aws_config(), args...)
 
         @patch function AWSS3.s3_get(config::AWSConfig, bucket, path; kwargs...)
             codeunits(get(content[(bucket, path)], "Content", ""))
@@ -283,17 +283,10 @@ function s3_patches!(content::AbstractDict, changes::Set=Set(Pair{Symbol, Any}[]
             config::AWSConfig,
             bucket,
             path;
-            to_bucket=999999,
-            to_path=999999,
+            to_bucket=bucket,
+            to_path=path,
             kwargs...,
         )
-            # gets around:
-            # https://github.com/invenia/Mocking.jl/issues/56
-            # https://github.com/invenia/Mocking.jl/issues/57
-            # https://github.com/invenia/Mocking.jl/issues/58
-            to_bucket = to_bucket === 999999 ? bucket : to_bucket
-            to_path = to_path === 999999 ? path : to_path
-
             push!(
                 changes,
                 :copy => Dict(
