@@ -25,9 +25,7 @@ function instance_metadata(path::AbstractString)
     uri = HTTP.URI(scheme="http", host="169.254.169.254", path=path)
 
     r = timeout(5) do
-        # Work around for Mocking: https://github.com/invenia/Mocking.jl/issues/16
-        http_get = HTTP.get
-        @mock http_get(uri, status_exception=false)
+        @mock HTTP.get(uri, status_exception=false)
     end
 
     return r !== nothing ? String(something(r).body) : r

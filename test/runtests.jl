@@ -1,11 +1,9 @@
-using Mocking
-Mocking.enable(force=true)
-
 using AWSCore: AWSCredentials, AWSException, aws_config
 using AWSTools
 using Dates
 using HTTP
 using Memento
+using Mocking
 using OrderedCollections: OrderedDict
 using Test
 
@@ -18,6 +16,8 @@ using AWSTools.ECR: get_login
 Memento.config!("debug"; fmt="[{level} | {name}]: {msg}")
  # Need this so that submodules are able to use the debug log level
 setlevel!(getlogger(AWSTools), "debug")
+
+Mocking.activate()
 
 include("patch.jl")
 
@@ -58,7 +58,7 @@ end
     include("S3.jl")
 
     @testset "account_id" begin
-        apply(get_caller_identity) do
+        apply(get_caller_identity_patch) do
             @test occursin(r"^\d{12}$", account_id())
         end
     end

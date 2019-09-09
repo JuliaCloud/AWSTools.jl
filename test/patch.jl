@@ -5,7 +5,7 @@ using Dates: datetime2unix, now
 const invalid_access_key = "ThisIsMyInvalidAccessKey"
 const invalid_secret_key = "ThisIsMyInvalidSecretKey"
 
-get_caller_identity = @patch function get_caller_identity()
+get_caller_identity_patch = @patch function AWSTools.get_caller_identity()
     account_id = join(rand(0:9, 12), "")
     Dict(
         "Account" => account_id,
@@ -14,7 +14,7 @@ get_caller_identity = @patch function get_caller_identity()
     )
 end
 
-sts_assume_role = @patch function sts(config::AWSConfig, op; RoleArn="", RoleSessionName="")
+sts_assume_role = @patch function AWSTools.sts(config::AWSConfig, op; kwargs...)
     Dict(
         "Credentials" => Dict(
             "AccessKeyId" => "TESTACCESSKEYID",
@@ -27,10 +27,13 @@ end
 
 
 function instance_metadata_patch(result)
-    @patch http_get(args...; kwargs...) = result
+    @patch HTTP.get(args...; kwargs...) = result
 end
 
-get_authorization_token_patch = @patch function get_authorization_token(config::AWSConfig; registryIds::AbstractVector=[])
+get_authorization_token_patch = @patch function AWSTools.ECR.get_authorization_token(
+    config::AWSConfig;
+    registryIds::AbstractVector=[],
+)
     id = lpad(isempty(registryIds) ? "" : first(registryIds), 12, '0')
     Dict(
         "authorizationData" => [
@@ -43,7 +46,11 @@ get_authorization_token_patch = @patch function get_authorization_token(config::
 end
 
 
-describe_stacks_patch = @patch function describe_stacks(config, args...; kwargs...)
+describe_stacks_patch = @patch function AWSTools.CloudFormation.describe_stacks(
+    config,
+    args...;
+    kwargs...,
+)
     responses = Dict(
        Dict(:StackName => "stackname") =>
         """
@@ -172,7 +179,7 @@ end
 
 function throttle_patch(allow)
     describe_stacks_throttle_count = 0
-    @patch function describe_stacks(args...; kwargs...)
+    @patch function AWSTools.CloudFormation.describe_stacks(args...; kwargs...)
         describe_stacks_throttle_count += 1
         if !(describe_stacks_throttle_count in allow)
             error_message = """
@@ -246,7 +253,12 @@ end
 
 function s3_patches!(content::AbstractDict, changes::Set=Set(Pair{Symbol, Any}[]))
     return [
-        @patch function s3_list_objects(config::AWSConfig, bucket, path_prefix; kwargs...)
+        @patch function AWSS3.s3_list_objects(
+            config::AWSConfig,
+            bucket,
+            path_prefix;
+            kwargs...,
+        )
             results = []
             for ((b, key), data) in content
                 if b == bucket && startswith(key, path_prefix)
@@ -256,32 +268,25 @@ function s3_patches!(content::AbstractDict, changes::Set=Set(Pair{Symbol, Any}[]
             return results
         end
 
-        # https://github.com/invenia/Mocking.jl/issues/59
-        # @patch s3_list_objects(args...) = s3_list_objects(aws_config(), args...)
+        # Patch calling another patch
+        @patch s3_list_objects(args...) = @mock s3_list_objects(aws_config(), args...)
 
-        @patch function s3_get(config::AWSConfig, bucket, path; kwargs...)
+        @patch function AWSS3.s3_get(config::AWSConfig, bucket, path; kwargs...)
             codeunits(get(content[(bucket, path)], "Content", ""))
         end
 
-        @patch function s3_exists(config::AWSConfig, bucket, path)
+        @patch function AWSS3.s3_exists(config::AWSConfig, bucket, path)
             haskey(content, (bucket, path))
         end
 
-        @patch function s3_copy(
+        @patch function AWSTools.S3.s3_copy(
             config::AWSConfig,
             bucket,
             path;
-            to_bucket=999999,
-            to_path=999999,
+            to_bucket=bucket,
+            to_path=path,
             kwargs...,
         )
-            # gets around:
-            # https://github.com/invenia/Mocking.jl/issues/56
-            # https://github.com/invenia/Mocking.jl/issues/57
-            # https://github.com/invenia/Mocking.jl/issues/58
-            to_bucket = to_bucket === 999999 ? bucket : to_bucket
-            to_path = to_path === 999999 ? path : to_path
-
             push!(
                 changes,
                 :copy => Dict(
@@ -291,11 +296,11 @@ function s3_patches!(content::AbstractDict, changes::Set=Set(Pair{Symbol, Any}[]
             )
         end
 
-        @patch function s3_delete(config::AWSConfig, bucket, path; kwargs...)
+        @patch function AWSS3.s3_delete(config::AWSConfig, bucket, path; kwargs...)
             push!(changes, :delete => (bucket, path))
         end
 
-        @patch function s3_put(
+        @patch function AWSS3.s3_put(
             config::AWSConfig,
             bucket,
             path,
