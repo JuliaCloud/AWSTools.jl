@@ -36,6 +36,11 @@ function timeout(f::Function, seconds::Real)
         istaskdone(t) || @async Base.throwto(t, InterruptException())
         wait(t)
     catch e
+        # Unwrap the TaskFailedException
+        if VERSION >= v"1.3.0-alpha.110" && e isa TaskFailedException
+            e = e.task.exception
+        end
+
         # Ignore the kill exception
         e isa InterruptException || rethrow(e)
     end

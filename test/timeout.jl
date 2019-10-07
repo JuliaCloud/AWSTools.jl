@@ -9,7 +9,7 @@ using AWSTools: timeout
             result = timeout(() -> 0, 1)
         end
         @test result == Some(0)
-        @test secs < 0.1  # Should execute almost as fast as calling the function directly
+        @test secs < 0.2  # Should execute almost as fast as calling the function directly
     end
 
     @testset "abort" begin
@@ -29,7 +29,7 @@ using AWSTools: timeout
         end
         @test result == Some(nothing)
         @test secs < 1
-        @test secs < 0.1  # Should execute almost as fast as calling the function directly
+        @test secs < 0.2  # Should execute almost as fast as calling the function directly
     end
 
     @testset "exception" begin
@@ -43,6 +43,6 @@ using AWSTools: timeout
         end
         @test exception == ErrorException("function error")
         @test secs < 5
-        @test secs < 0.1  # Should execute almost as fast as calling the function directly
+        @test secs < 0.2  # Should execute almost as fast as calling the function directly
     end
 end
