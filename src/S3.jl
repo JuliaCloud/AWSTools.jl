@@ -18,10 +18,6 @@ const logger = getlogger(@__MODULE__)
 # `MyModule.logger` won't be registered at runtime.
 function __init__()
     Memento.register(logger)
-    @warn(
-        "S3Path has moved to AWSS3 and sync will be removed " *
-        "in a future release in favour of FilePathsBase.sync."
-    )
 end
 
 # Couple extra methods that should probably be included in AWSS3 at some point.
