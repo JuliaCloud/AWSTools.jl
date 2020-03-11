@@ -22,9 +22,4 @@ variables:
   variables:
     ONLINE: "S3"  # Runs the online S3 tests against AWS
     AWS_STACKNAME: gitlab-ci-runners  # Has the test bucket name for the online S3 tests
-  script:
-    - source julia-ci export
-    - export PATH="$PATH:/usr/local/bin"
-    - ./julia-ci test
-    - ./julia-ci coverage
   extends: .test_shell_1_0
