@@ -21,12 +21,14 @@ XMLDict = "228000da-037f-5747-90a9-8195ccbf91a5"
 [compat]
 AWSCore = "0.5, 0.6"
 AWSS3 = "0.6"
-EzXML = "0.7.3, 0.8, 0.9"
+EzXML = "0.7.3, 0.8, 0.9, 1"
 FilePathsBase = "0.6, 0.7, 0.8"
 HTTP = "0.8.4"
-Memento = "0.12.1, 1"
+MbedTLS = "0.6, 0.7, 1"
+Memento = "0.12.1, 0.13, 1"
 Mocking = "0.7"
-XMLDict = "0.1.3, 0.2, 0.3"
+OrderedCollections = "1"
+XMLDict = "0.1.3, 0.2, 0.3, 0.4"
 julia = "1"
 
 [extras]
