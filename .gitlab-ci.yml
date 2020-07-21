@@ -5,7 +5,7 @@
 cache: {}
 
 include:
-  - project: infrastructure/gitlab-ci-helper
+  - project: invenia/gitlab-ci-helper
     file: /templates/julia.yml
 
 variables:
