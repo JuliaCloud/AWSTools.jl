@@ -1,7 +1,7 @@
 name = "AWSTools"
 uuid = "83bcdc74-1232-581c-948a-f29122bf8259"
 authors = ["Invenia Technical Computing"]
-version = "1.7.3"
+version = "1.7.4"
 
 [deps]
 AWSCore = "4f1ea46c-232b-54a6-9b17-cc2d0f3e6598"
