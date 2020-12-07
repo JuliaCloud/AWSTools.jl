@@ -1,0 +1,7 @@
+[deps]
+AWSTools = "83bcdc74-1232-581c-948a-f29122bf8259"
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+FilePathsBase = "48062228-2e41-5def-b9a4-89aafe57970f"
+
+[compat]
+Documenter = "~0.22.4"

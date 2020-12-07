@@ -1,0 +1,22 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  A stack for testing AWS.jl from public CI
+Parameters:
+  PublicCIUser:
+    Description: User which can assume the testing role
+    Type: String
+
+Resources:
+  StackInfoPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: Allow access to stack outputs
+      Users:
+        - !Ref PublicCIUser
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Action: ecr:GetAuthorizationToken
+          Resource: "*"
