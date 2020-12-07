@@ -11,7 +11,7 @@ makedocs(
     pages=[
         "Home" => "index.md",
     ],
-    repo="https://gitlab.invenia.ca/invenia/AWSTools.jl/blob/{commit}{path}#L{line}",
+    repo="https://github.com/JuliaCloud/AWSTools.jl/blob/{commit}{path}#L{line}",
     sitename="AWSTools.jl",
     authors="Invenia Technical Computing",
     checkdocs = :exports,
