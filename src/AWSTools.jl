@@ -54,7 +54,6 @@ function assume_role(
 end
 
 include("timeout.jl")
-
 include("CloudFormation.jl")
 include("EC2.jl")
 include("ECR.jl")
