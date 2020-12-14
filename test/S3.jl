@@ -283,7 +283,7 @@ end
                     end
 
                     @testset "Download via presign" begin
-                        src = Path("$s3_prefix/presign/file")
+                        src = S3Path("$s3_prefix/presign/file")
                         content = "presigned content"
                         s3_put(src.bucket, src.key, content)
 
