@@ -224,7 +224,7 @@ end
 
                 try
                     @testset "Upload to S3" begin
-                        dest = Path("$s3_prefix/folder3/testfile")
+                        dest = S3Path("$s3_prefix/folder3/testfile")
 
                         try
                             mktemp() do src, stream
@@ -247,7 +247,7 @@ end
                     end
 
                     @testset "Download from S3" begin
-                        src = Path("$s3_prefix/folder4/testfile")
+                        src = S3Path("$s3_prefix/folder4/testfile")
 
                         try
                             s3_put(src.bucket, src.key, "Remote content")
@@ -312,8 +312,8 @@ end
                     @testset "Sync S3 directories" begin
                         bucket, key_prefix = bucket_and_key(s3_prefix)
 
-                        src_dir = Path("$s3_prefix/folder1/")
-                        dest_dir = Path("$s3_prefix/folder2/")
+                        src_dir = S3Path("$s3_prefix/folder1/")
+                        dest_dir = S3Path("$s3_prefix/folder2/")
 
                         # Directories should be empty, but just in case
                         # delete any pre-existing objects in the s3 bucket directories
@@ -374,12 +374,12 @@ end
 
                         # Test readdir only lists files and "dirs" within this S3 "dir"
                         @test readdir(dest_dir) == ["file1", "file2", "folder/"]
-                        @test readdir(Path("$s3_prefix/")) == [
+                        @test readdir(S3Path("$s3_prefix/")) == [
                             "folder1/", "folder2/", "presign/"
                         ]
                         # Not including the ending `/` means this refers to an object and
                         # not a directory prefix in S3
-                        @test_throws ArgumentError readdir(Path(s3_prefix))
+                        @test_throws ArgumentError readdir(S3Path(s3_prefix))
 
                         @testset "Sync modified dest file" begin
                             # Modify a file in dest
@@ -441,7 +441,7 @@ end
                             file = "s3://" * join([obj["Bucket"], obj["Key"]], '/')
 
                             @test startswith(file, "s3://")
-                            @test_throws ArgumentError sync(Path(file), dest_dir)
+                            @test_throws ArgumentError sync(S3Path(file), dest_dir)
                         end
 
                         rm(src_files[1])
@@ -502,14 +502,14 @@ end
 
                 finally
                     # Clean up any files left in the test directory
-                    rm(Path("$s3_prefix/"); recursive=true)
+                    rm(S3Path("$s3_prefix/"); recursive=true)
 
                     # Delete bucket if it was explicitly created
                     if TEST_BUCKET_AND_PREFIX === nothing
                         s3_bucket_dir = replace(s3_prefix, r"^(s3://[^/]+).*$" => s"\1")
                         bucket, key = bucket_and_key(s3_bucket_dir)
                         @info "Deleting S3 bucket $bucket"
-                        rm(Path("s3://$bucket/"); recursive=true)
+                        rm(S3Path("s3://$bucket/"); recursive=true)
                         s3_delete_bucket(bucket)
                     end
                 end
