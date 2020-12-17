@@ -2,6 +2,8 @@ using AWSCore: AWSCredentials, AWSException, aws_config
 using AWSTools
 using Dates
 using Documenter
+using FilePathsBase
+using FilePathsBase: join
 using HTTP
 using Memento
 using Mocking
