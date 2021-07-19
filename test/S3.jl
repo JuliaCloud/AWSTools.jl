@@ -37,7 +37,7 @@ function compare(src_file::AbstractPath, dest_file::AbstractPath)
         @test isfile(src_file)
         @test isfile(dest_file)
         @test basename(dest_file) == basename(src_file)
-        @test size(dest_file) == size(src_file)
+        @test filesize(dest_file) == filesize(src_file)
         @test modified(dest_file) >= modified(src_file)
 
         # Test file contents are equal

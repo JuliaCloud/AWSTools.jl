@@ -1,7 +1,7 @@
 name = "AWSTools"
 uuid = "83bcdc74-1232-581c-948a-f29122bf8259"
 authors = ["Invenia Technical Computing"]
-version = "1.8.0"
+version = "1.9.0"
 
 [deps]
 AWSCore = "4f1ea46c-232b-54a6-9b17-cc2d0f3e6598"
@@ -22,7 +22,7 @@ XMLDict = "228000da-037f-5747-90a9-8195ccbf91a5"
 AWSCore = "0.5, 0.6"
 AWSS3 = "0.6, 0.8"
 EzXML = "0.7.3, 0.8, 0.9, 1"
-FilePathsBase = "0.6, 0.7, 0.8, 0.9"
+FilePathsBase = "0.9"
 HTTP = "0.8.4"
 MbedTLS = "0.6, 0.7, 1"
 Memento = "0.12.1, 0.13, 1"
