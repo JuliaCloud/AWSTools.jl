@@ -1,6 +1,6 @@
 module Docker
 
-using AWSCore
+using AWS
 using ..ECR
 
 export login, pull, push, build
@@ -13,7 +13,7 @@ Takes an optional AWS `config` keyword argument or uses the default.
 """
 function login(
     registry_id::Union{AbstractString, Integer}="";
-    config::AWSConfig=aws_config()
+    config::AWSConfig=global_aws_config()
 )
     login(ECR.get_login(registry_id; config=config))
 end

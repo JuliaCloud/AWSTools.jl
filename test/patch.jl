@@ -1,4 +1,4 @@
-using AWSCore: AWSConfig, AWSException
+using AWS
 using Base: CmdRedirect
 using Base64
 using Dates: datetime2unix, now
@@ -6,35 +6,43 @@ const invalid_access_key = "ThisIsMyInvalidAccessKey"
 const invalid_secret_key = "ThisIsMyInvalidSecretKey"
 
 get_caller_identity_patch = @patch function AWSTools.get_caller_identity()
-    account_id = join(rand(0:9, 12), "")
-    Dict(
-        "Account" => account_id,
-        "Arn" => "arn:aws:iam::$account_id:user/UserName",
-        "UserId" => join(rand('A':'Z', 21), ""),
-    )
+  account_id = join(rand(0:9, 12), "")
+  return Dict(
+      "GetCallerIdentityResult" => Dict(
+          Dict(
+              "Account" => account_id,
+              "Arn" => "arn:aws:iam::$account_id:user/UserName",
+              "UserId" => join(rand('A':'Z', 21), ""),
+          ),
+      ),
+  )
 end
 
-sts_assume_role = @patch function AWSTools.sts(config::AWSConfig, op; kwargs...)
-    Dict(
-        "Credentials" => Dict(
-            "AccessKeyId" => "TESTACCESSKEYID",
-            "SecretAccessKey" => "TESTSECRETACEESSKEY",
-            "SessionToken" => "TestSessionToken",
-            "Expiration" => datetime2unix(now()),
-        ),
-    )
-end
 
+sts_assume_role = @patch function AWSTools.STS.assume_role(
+  role_arn, role_session_name; aws_config
+)
+  return Dict(
+      "AssumeRoleResult" => Dict(
+          "Credentials" => Dict(
+              "AccessKeyId" => "TESTACCESSKEYID",
+              "SecretAccessKey" => "TESTSECRETACEESSKEY",
+              "SessionToken" => "TestSessionToken",
+              "Expiration" => datetime2unix(now()),
+          ),
+      ),
+  )
+end
 
 function instance_metadata_patch(result)
     @patch HTTP.get(args...; kwargs...) = result
 end
 
 get_authorization_token_patch = @patch function AWSTools.ECR.get_authorization_token(
-    config::AWSConfig;
-    registryIds::AbstractVector=[],
+    config::AWSConfig,
+    params::AbstractDict,
 )
-    id = lpad(isempty(registryIds) ? "" : first(registryIds), 12, '0')
+    id = lpad(!haskey(params, "registryIds") ? "" : first(params["registryIds"]), 12, '0')
     Dict(
         "authorizationData" => [
             Dict(
@@ -48,11 +56,10 @@ end
 
 describe_stacks_patch = @patch function AWSTools.CloudFormation.describe_stacks(
     config,
-    args...;
-    kwargs...,
+    params
 )
     responses = Dict(
-       Dict(:StackName => "stackname") =>
+       Dict("StackName" => "stackname", "return_raw" => true) =>
         """
         <DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
           <DescribeStacksResult>
@@ -66,7 +73,7 @@ describe_stacks_patch = @patch function AWSTools.CloudFormation.describe_stacks(
           </DescribeStacksResult>
         </DescribeStacksResponse>
         """,
-        Dict(:StackName => "1-stack-output-stackname") =>
+        Dict("StackName" => "1-stack-output-stackname", "return_raw" => true) =>
         """
         <DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
           <DescribeStacksResult>
@@ -86,7 +93,7 @@ describe_stacks_patch = @patch function AWSTools.CloudFormation.describe_stacks(
           </DescribeStacksResult>
         </DescribeStacksResponse>
         """,
-        Dict(:StackName => "multiple-stack-outputs-stackname") =>
+        Dict("StackName" => "multiple-stack-outputs-stackname", "return_raw" => true) =>
         """
         <DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
           <DescribeStacksResult>
@@ -110,7 +117,7 @@ describe_stacks_patch = @patch function AWSTools.CloudFormation.describe_stacks(
           </DescribeStacksResult>
         </DescribeStacksResponse>
         """,
-        Dict(:StackName => "empty-value") =>
+        Dict("StackName" => "empty-value", "return_raw" => true) =>
         """
         <DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
           <DescribeStacksResult>
@@ -130,7 +137,7 @@ describe_stacks_patch = @patch function AWSTools.CloudFormation.describe_stacks(
           </DescribeStacksResult>
         </DescribeStacksResponse>
         """,
-        Dict(:StackName => "export") =>
+        Dict("StackName" => "export", "return_raw" => true) =>
         """
         <DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
           <DescribeStacksResult>
@@ -155,8 +162,8 @@ describe_stacks_patch = @patch function AWSTools.CloudFormation.describe_stacks(
     )
 
     # So we can test that we get an error using the invalid access and secret keys
-    access_key = config[:creds].access_key_id
-    secret_key = config[:creds].secret_key
+    access_key = config.credentials.access_key_id
+    secret_key = config.credentials.secret_key
     if access_key == invalid_access_key && secret_key == invalid_secret_key
         throw(AWSException(
             HTTP.StatusError(403, "", "", HTTP.Messages.Response(403, """
@@ -172,14 +179,14 @@ describe_stacks_patch = @patch function AWSTools.CloudFormation.describe_stacks(
             ))
         ))
     else
-        return responses[Dict{Symbol, String}(kwargs)]
+        return responses[params]
     end
 end
 
 
 function throttle_patch(allow)
     describe_stacks_throttle_count = 0
-    @patch function AWSTools.CloudFormation.describe_stacks(args...; kwargs...)
+    @patch function AWSTools.CloudFormation.describe_stacks(config, params)
         describe_stacks_throttle_count += 1
         if !(describe_stacks_throttle_count in allow)
             error_message = """
@@ -197,7 +204,7 @@ function throttle_patch(allow)
             throw(AWSException(http_error))
         end
         responses = Dict(
-           Dict(:StackName => "stackname") =>
+           Dict("StackName" => "stackname", "return_raw" => true) =>
             """
             <DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
               <DescribeStacksResult>
@@ -214,7 +221,7 @@ function throttle_patch(allow)
             """,
         )
 
-        return responses[Dict{Symbol, String}(kwargs)]
+        return responses[params]
     end
 end
 

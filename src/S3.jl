@@ -1,8 +1,8 @@
 __precompile__()
 module S3
 
-using AWSCore
-using AWSS3: AWSS3
+using AWS
+using AWSS3
 using Dates
 using FilePathsBase
 
