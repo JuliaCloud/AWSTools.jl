@@ -7,7 +7,7 @@ using Mocking
 # Improper casing to avoid issues with Module name and AWS.AWSService
 @service Ecr
 
-function get_authorization_token(config::AWSConfig, params::AbstractDict=Dict{String, Any}())
+function get_authorization_token(config::AWSConfig, params::AbstractDict=Dict{String,Any}())
     return Ecr.get_authorization_token(params; aws_config=config)
 end
 
