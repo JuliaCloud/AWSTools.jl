@@ -52,8 +52,7 @@ get_authorization_token_patch = @patch function AWSTools.ECR.get_authorization_t
 end
 
 describe_stacks_patch = @patch function AWSTools.CloudFormation.describe_stacks(
-    config,
-    params
+    config, params
 )
     responses = Dict(
        Dict("StackName" => "stackname", "return_raw" => true) =>

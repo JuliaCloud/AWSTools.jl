@@ -42,8 +42,7 @@ Returns the description for the specified stack. Can optionally pass in the aws 
 as a keyword argument.
 """
 function raw_stack_description(
-    stack_name::AbstractString;
-    config::AWSConfig=global_aws_config()
+    stack_name::AbstractString; config::AWSConfig=global_aws_config()
 )
     function retry_cond(s, e)
         if e isa AWSException
@@ -110,8 +109,7 @@ end
 # BEGIN AWSTools.Cloudformation 0.8.1 deprecations
 
 function stack_description(
-    stack_name::AbstractString;
-    config::AWSConfig=global_aws_config()
+    stack_name::AbstractString; config::AWSConfig=global_aws_config()
 )
     dep_msg = """
         `stack_description(::AbstractString; ::AWSConfig)` is deprecated and will be removed.

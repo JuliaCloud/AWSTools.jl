@@ -12,8 +12,7 @@ Gets the AWS ECR authorization token and runs the corresponding docker login com
 Takes an optional AWS `config` keyword argument or uses the default.
 """
 function login(
-    registry_id::Union{AbstractString, Integer}="";
-    config::AWSConfig=global_aws_config()
+    registry_id::Union{AbstractString, Integer}=""; config::AWSConfig=global_aws_config()
 )
     return login(ECR.get_login(registry_id; config=config))
 end
