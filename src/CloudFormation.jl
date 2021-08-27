@@ -24,7 +24,6 @@ function describe_stacks(config::AWSConfig, params::AbstractDict)
     return cloudFormation.describe_stacks(params; aws_config=config)
 end
 
-
 const _NRETRIES = 5
 
 # for APIs we don't want to hammer

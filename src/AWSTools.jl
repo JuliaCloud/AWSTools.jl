@@ -9,7 +9,7 @@ export assume_role
 
 @service STS
 
-get_caller_identity() = STS.get_caller_identity()
+get_caller_identity() = STS.get_caller_identity()["GetCallerIdentityResult"]
 account_id() = (@mock get_caller_identity())["GetCallerIdentityResult"]["Account"]
 
 """
@@ -35,7 +35,7 @@ function assume_role(
         response = @mock STS.assume_role(role_arn, role_session_name; aws_config=config)
         response = response["AssumeRoleResult"]
         credentials = response["Credentials"]
-        AWSCredentials(
+        return AWSCredentials(
             credentials["AccessKeyId"],
             credentials["SecretAccessKey"],
             credentials["SessionToken"],
@@ -47,7 +47,7 @@ function assume_role(
     creds = renew()
     creds.renew = renew
 
-    return AWSConfig(creds=creds)
+    return AWSConfig(; creds=creds)
 end
 
 include("timeout.jl")
