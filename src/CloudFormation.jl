@@ -18,9 +18,14 @@ const logger = getlogger(@__MODULE__)
 # NOTE: If this line is not included then the precompiled `MyModule.logger` won't be registered at runtime.
 __init__() = Memento.register(logger)
 
-export raw_stack_description, stack_output, stack_description
+export raw_stack_description, stack_output
 
 function describe_stacks(config::AWSConfig, params::AbstractDict)
+    dep_msg = """
+    `describe_stacks(config::AWSConfig, params::AbstractDict)` is deprecated and will be removed.
+    Use the AWS @service CloudFormation.describe_stacks() functionality instead.
+    """
+Base.depwarn(dep_msg, :get_authorization_token)
     return cloudFormation.describe_stacks(params; aws_config=config)
 end
 
@@ -105,24 +110,5 @@ function output_pair(item::AbstractDict)
 
     return key => value
 end
-
-# BEGIN AWSTools.Cloudformation 0.8.1 deprecations
-
-function stack_description(
-    stack_name::AbstractString; config::AWSConfig=global_aws_config()
-)
-    dep_msg = """
-        `stack_description(::AbstractString; ::AWSConfig)` is deprecated and will be removed.
-        Please use `raw_stack_description(::AbstractString; ::AWSConfig)` instead and handle XML parsing in the calling function.
-        We recommend using EzXML.
-        """
-    Base.depwarn(dep_msg, :stack_description)
-
-    response = xml_dict(raw_stack_description(stack_name))
-
-    return response["DescribeStacksResult"]["Stacks"]["member"]
-end
-
-# END AWSTools.Cloudformation 0.8.1 deprecations
 
 end  # CloudFormation

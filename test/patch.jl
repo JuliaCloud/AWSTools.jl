@@ -30,7 +30,6 @@ get_caller_identity_patch = @patch function AWSTools.get_caller_identity()
         ),
     )
 end
-
 sts_assume_role = @patch function AWSTools.STS.assume_role(
     role_arn, role_session_name; aws_config
 )
@@ -61,7 +60,6 @@ get_authorization_token_no_param_patch = @patch function AWSTools.ECR.get_author
 )
     return get_auth(config)
 end
-
 describe_stacks_patch = @patch function AWSTools.CloudFormation.describe_stacks(
     config, params
 )

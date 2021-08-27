@@ -38,8 +38,8 @@ function assume_role(
         return AWSCredentials(
             credentials["AccessKeyId"],
             credentials["SecretAccessKey"],
-            credentials["SessionToken"],
-            expiry = unix2datetime(credentials["Expiration"])
+            credentials["SessionToken"];
+            expiry=unix2datetime(credentials["Expiration"]),
         )
     end
 

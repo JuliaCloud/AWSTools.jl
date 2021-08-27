@@ -8,6 +8,11 @@ using Mocking
 @service Ecr
 
 function get_authorization_token(config::AWSConfig, params::AbstractDict=Dict{String,Any}())
+    dep_msg = """
+        `get_authorization_token(config::AWSConfig, params::AbstractDict=Dict{String,Any}())` is deprecated and will be removed.
+        Use the AWS @service ECR.get_authorization_token() functionality instead.
+        """
+    Base.depwarn(dep_msg, :get_authorization_token)
     return Ecr.get_authorization_token(params; aws_config=config)
 end
 
