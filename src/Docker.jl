@@ -15,7 +15,7 @@ function login(
     registry_id::Union{AbstractString, Integer}="";
     config::AWSConfig=global_aws_config()
 )
-    login(ECR.get_login(registry_id; config=config))
+    return login(ECR.get_login(registry_id; config=config))
 end
 
 function login(docker_login::Cmd)

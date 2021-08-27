@@ -6,32 +6,31 @@ const invalid_access_key = "ThisIsMyInvalidAccessKey"
 const invalid_secret_key = "ThisIsMyInvalidSecretKey"
 
 get_caller_identity_patch = @patch function AWSTools.get_caller_identity()
-  account_id = join(rand(0:9, 12), "")
-  return Dict(
-      "GetCallerIdentityResult" => Dict(
-          Dict(
-              "Account" => account_id,
-              "Arn" => "arn:aws:iam::$account_id:user/UserName",
-              "UserId" => join(rand('A':'Z', 21), ""),
-          ),
-      ),
-  )
+    account_id = join(rand(0:9, 12), "")
+    return Dict(
+        "GetCallerIdentityResult" => Dict(
+            Dict(
+                "Account" => account_id,
+                "Arn" => "arn:aws:iam::$account_id:user/UserName",
+                "UserId" => join(rand('A':'Z', 21), ""),
+            ),
+        ),
+    )
 end
 
-
 sts_assume_role = @patch function AWSTools.STS.assume_role(
-  role_arn, role_session_name; aws_config
+    role_arn, role_session_name; aws_config
 )
-  return Dict(
-      "AssumeRoleResult" => Dict(
-          "Credentials" => Dict(
-              "AccessKeyId" => "TESTACCESSKEYID",
-              "SecretAccessKey" => "TESTSECRETACEESSKEY",
-              "SessionToken" => "TestSessionToken",
-              "Expiration" => datetime2unix(now()),
-          ),
-      ),
-  )
+    return Dict(
+        "AssumeRoleResult" => Dict(
+            "Credentials" => Dict(
+                "AccessKeyId" => "TESTACCESSKEYID",
+                "SecretAccessKey" => "TESTSECRETACEESSKEY",
+                "SessionToken" => "TestSessionToken",
+                "Expiration" => datetime2unix(now()),
+            ),
+        ),
+    )
 end
 
 function instance_metadata_patch(result)
@@ -39,11 +38,10 @@ function instance_metadata_patch(result)
 end
 
 get_authorization_token_patch = @patch function AWSTools.ECR.get_authorization_token(
-    config::AWSConfig,
-    params::AbstractDict,
+    config::AWSConfig, params::AbstractDict
 )
     id = lpad(!haskey(params, "registryIds") ? "" : first(params["registryIds"]), 12, '0')
-    Dict(
+    return Dict(
         "authorizationData" => [
             Dict(
                 "authorizationToken" => base64encode("AWS:password"),
@@ -52,7 +50,6 @@ get_authorization_token_patch = @patch function AWSTools.ECR.get_authorization_t
         ]
     )
 end
-
 
 describe_stacks_patch = @patch function AWSTools.CloudFormation.describe_stacks(
     config,
@@ -182,7 +179,6 @@ describe_stacks_patch = @patch function AWSTools.CloudFormation.describe_stacks(
         return responses[params]
     end
 end
-
 
 function throttle_patch(allow)
     describe_stacks_throttle_count = 0

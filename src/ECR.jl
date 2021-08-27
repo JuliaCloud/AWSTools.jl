@@ -7,7 +7,7 @@ using Mocking
 # Improper casing to avoid issues with Module name and AWS.AWSService
 @service Ecr
 
-function get_authorization_token(config::AWSConfig, params::AbstractDict)
+function get_authorization_token(config::AWSConfig, params::AbstractDict=Dict{String, Any}())
     return Ecr.get_authorization_token(params; aws_config=config)
 end
 
@@ -28,9 +28,9 @@ function get_login(registry_id::AbstractString=""; config::AWSConfig=global_aws_
     # passed in. Because of these factors we'll do our processing on a single registry.
 
     response = if !isempty(registry_id)
-        @mock get_authorization_token(config, Dict("registryIds"=>[registry_id]))
+        @mock get_authorization_token(config, Dict("registryIds" => [registry_id]))
     else
-        @mock get_authorization_token(config, Dict{String, Any}())
+        @mock get_authorization_token(config, Dict{String,Any}())
     end
 
     authorization_data = first(response["authorizationData"])
@@ -42,7 +42,7 @@ function get_login(registry_id::AbstractString=""; config::AWSConfig=global_aws_
 end
 
 function get_login(registry_id::Integer; config::AWSConfig=global_aws_config())
-    get_login(lpad(registry_id, 12, '0'); config=config)
+    return get_login(lpad(registry_id, 12, '0'); config=config)
 end
 
 end  # ECR
