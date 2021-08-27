@@ -78,7 +78,7 @@ The stack's OutputKey and OutputValue values as a dictionary. Can pass in the aw
 as a keyword argument.
 """
 function stack_output(stack_name::AbstractString; config::AWSConfig=global_aws_config())
-    outputs = OrderedDict{String, String}()
+    outputs = OrderedDict{String,String}()
     description = raw_stack_description(stack_name; config=config)
 
     xml = root(parsexml(description))
