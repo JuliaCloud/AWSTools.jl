@@ -30,7 +30,7 @@ function get_login(registry_id::AbstractString=""; config::AWSConfig=global_aws_
     response = if !isempty(registry_id)
         @mock get_authorization_token(config, Dict("registryIds" => [registry_id]))
     else
-        @mock get_authorization_token(config, Dict{String,Any}())
+        @mock get_authorization_token(config)
     end
 
     authorization_data = first(response["authorizationData"])
