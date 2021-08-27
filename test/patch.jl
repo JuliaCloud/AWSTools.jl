@@ -170,7 +170,10 @@ describe_stacks_patch = @patch function AWSTools.CloudFormation.describe_stacks(
         throw(
             AWSException(
                 HTTP.StatusError(
-                    403, "", "", HTTP.Messages.Response(
+                    403,
+                    "",
+                    "",
+                    HTTP.Messages.Response(
                         403,
                         """
 <ErrorResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
@@ -182,7 +185,7 @@ describe_stacks_patch = @patch function AWSTools.CloudFormation.describe_stacks(
     <RequestId>cff5beb8-4b7b-11e9-9c2b-43c18f6078dc</RequestId>
 </ErrorResponse>
 """,
-                    )
+                    ),
                 ),
             ),
         )
