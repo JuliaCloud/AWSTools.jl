@@ -127,7 +127,8 @@ end
         @testset "Basic login" begin
             apply(get_authorization_token_no_param_patch) do
                 docker_login = get_login()
-                @test docker_login == `docker login -u AWS -p password https://000000000000.dkr.ecr.us-east-1.amazonaws.com`
+                @test docker_login ==
+                      `docker login -u AWS -p password https://000000000000.dkr.ecr.us-east-1.amazonaws.com`
             end
         end
 
