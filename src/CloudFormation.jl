@@ -62,7 +62,7 @@ function raw_stack_description(
         return (s, false)
     end
 
-    f = retry(delays=cautious_delays(; jitter=0.2), check=retry_cond) do
+    f = retry(; delays=cautious_delays(; jitter=0.2), check=retry_cond) do
         @mock describe_stacks(config, Dict("StackName" => stack_name, "return_raw" => true))
     end
 
