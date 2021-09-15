@@ -2,18 +2,18 @@
 
 [[AWS]]
 deps = ["Base64", "Compat", "Dates", "Downloads", "GitHub", "HTTP", "IniFile", "JSON", "MbedTLS", "Mocking", "OrderedCollections", "Retry", "Sockets", "URIs", "UUIDs", "XMLDict"]
-git-tree-sha1 = "30212a1d36023da103548e0d56c0f6e580044b69"
+git-tree-sha1 = "5a202ba4941a6bdbe901df5e6e591cd4dedb348f"
 uuid = "fbe9abb3-538b-5e4e-ba9e-bc94f4f92ebc"
-version = "1.58.0"
+version = "1.60.3"
 
 [[AWSS3]]
 deps = ["AWS", "Base64", "Dates", "EzXML", "FilePathsBase", "HTTP", "MbedTLS", "OrderedCollections", "Retry", "SymDict", "URIs", "UUIDs", "XMLDict"]
-git-tree-sha1 = "82b957f8ea9a7154b3001948b6758c0e9baa19cb"
+git-tree-sha1 = "09d99ce2fba4de795a357535462519a569801c40"
 uuid = "1c724243-ef5b-51ab-93f4-b0a88ac62a95"
-version = "0.8.8"
+version = "0.8.9"
 
 [[AWSTools]]
-deps = ["AWS", "AWSS3", "Base64", "Dates", "EzXML", "FilePathsBase", "HTTP", "MbedTLS", "Memento", "Mocking", "OrderedCollections", "Random", "XMLDict"]
+deps = ["AWS", "AWSS3", "Base64", "Dates", "EzXML", "HTTP", "MbedTLS", "Memento", "Mocking", "OrderedCollections", "Random", "XMLDict"]
 path = ".."
 uuid = "83bcdc74-1232-581c-948a-f29122bf8259"
 version = "2.0.0"
@@ -29,9 +29,9 @@ uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 
 [[Compat]]
 deps = ["Base64", "Dates", "DelimitedFiles", "Distributed", "InteractiveUtils", "LibGit2", "Libdl", "LinearAlgebra", "Markdown", "Mmap", "Pkg", "Printf", "REPL", "Random", "SHA", "Serialization", "SharedArrays", "Sockets", "SparseArrays", "Statistics", "Test", "UUIDs", "Unicode"]
-git-tree-sha1 = "727e463cfebd0c7b999bbf3e9e7e16f254b94193"
+git-tree-sha1 = "4866e381721b30fac8dda4c8cb1d9db45c8d2994"
 uuid = "34da2185-b29b-5c13-b0c7-acf172513d20"
-version = "3.34.0"
+version = "3.37.0"
 
 [[Dates]]
 deps = ["Printf"]
@@ -84,15 +84,15 @@ uuid = "9fa8497b-333b-5362-9e8d-4d0656e87820"
 
 [[GitHub]]
 deps = ["Base64", "Dates", "HTTP", "JSON", "MbedTLS", "Sockets", "SodiumSeal"]
-git-tree-sha1 = "9e62f3eae4a2514d1de65cc2ac9d1669032a4595"
+git-tree-sha1 = "c8594dff1ed76e232d8063b2a2555335900af6f3"
 uuid = "bc5e4493-9b4d-5f90-b8aa-2b2bcaad7a26"
-version = "5.6.0"
+version = "5.7.0"
 
 [[HTTP]]
 deps = ["Base64", "Dates", "IniFile", "Logging", "MbedTLS", "NetworkOptions", "Sockets", "URIs"]
-git-tree-sha1 = "44e3b40da000eab4ccb1aecdc4801c040026aeb5"
+git-tree-sha1 = "60ed5f1643927479f845b0135bb369b031b541fa"
 uuid = "cd3eb016-35fb-5094-929b-558a96fad6f3"
-version = "0.9.13"
+version = "0.9.14"
 
 [[IniFile]]
 deps = ["Test"]

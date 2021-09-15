@@ -4,7 +4,7 @@ using AWS
 using AWSS3
 using Mocking
 using Random
-using Dates: Period, unix2datetime
+using Dates: unix2datetime
 export assume_role
 
 @service STS
@@ -55,6 +55,7 @@ include("CloudFormation.jl")
 include("EC2.jl")
 include("ECR.jl")
 include("Docker.jl")
-include("S3.jl")
+
+Base.@deprecate_binding S3 AWSS3
 
 end  # AWSTools

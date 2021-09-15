@@ -1,4 +1,4 @@
-using Documenter, AWSTools, FilePathsBase
+using Documenter, AWSTools
 
 makedocs(
     modules=[AWSTools],
