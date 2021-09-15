@@ -67,11 +67,3 @@ AWSTools.EC2.instance_metadata(::AbstractString)
 AWSTools.EC2.instance_availability_zone()
 AWSTools.EC2.instance_region()
 ```
-
-### S3
-
-#### Exported
-
-```@docs
-AWSTools.S3.upload
-```
