@@ -18,7 +18,12 @@ export S3Path, sync, upload
 
 # TODO: Remove the sync methods below as they are now pirating.
 @deprecate(
-    sync(src::AbstractString, dest::AbstractString; delete::Bool=false, config::AWSConfig=aws_config()),
+    sync(
+        src::AbstractString,
+        dest::AbstractString;
+        delete::Bool=false,
+        config::AWSConfig=aws_config(),
+    ),
     FilePathsBase.sync(Path(src), Path(dest); delete=delete),
 )
 

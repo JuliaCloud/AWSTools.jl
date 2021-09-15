@@ -143,7 +143,6 @@ end
                     end
                 end
 
-
                 @testset "Download via presign" begin
                     src = S3Path("$s3_prefix/presign/file")
                     content = "presigned content"
