@@ -1,6 +1,6 @@
 using Documenter, AWSTools
 
-makedocs(
+makedocs(;
     modules=[AWSTools],
     format=Documenter.HTML(
         prettyurls = get(ENV, "CI", nothing) == "true",
