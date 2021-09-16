@@ -1,11 +1,7 @@
 name = "AWSTools"
 uuid = "83bcdc74-1232-581c-948a-f29122bf8259"
 authors = ["Invenia Technical Computing"]
-<<<<<<< HEAD
-version = "1.10.1"
-=======
 version = "2.0.0"
->>>>>>> 3595100 (AWSCore.jl -> AWS.jl)
 
 [deps]
 AWS = "fbe9abb3-538b-5e4e-ba9e-bc94f4f92ebc"
