@@ -1,19 +1,14 @@
-using Documenter, AWSTools, FilePathsBase
+using Documenter, AWSTools
 
-makedocs(
+makedocs(;
     modules=[AWSTools],
-    format=Documenter.HTML(
-        prettyurls = get(ENV, "CI", nothing) == "true",
-        assets=[
-            "assets/invenia.css",
-        ],
+    format=Documenter.HTML(;
+        prettyurls=get(ENV, "CI", nothing) == "true", assets=["assets/invenia.css"]
     ),
-    pages=[
-        "Home" => "index.md",
-    ],
+    pages=["Home" => "index.md"],
     repo="https://github.com/JuliaCloud/AWSTools.jl/blob/{commit}{path}#L{line}",
     sitename="AWSTools.jl",
     authors="Invenia Technical Computing",
-    checkdocs = :exports,
-    strict = true,
+    checkdocs=:exports,
+    strict=true,
 )

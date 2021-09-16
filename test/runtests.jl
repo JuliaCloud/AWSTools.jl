@@ -3,8 +3,6 @@ using AWS: AWSExceptions.AWSException
 using AWSTools
 using Dates
 using Documenter
-using FilePathsBase
-using FilePathsBase: join
 using HTTP
 using Memento
 using Mocking
@@ -58,7 +56,6 @@ end
 @testset "AWSTools Tests" begin
     include("timeout.jl")
     include("EC2.jl")
-    include("S3.jl")
 
     @testset "account_id" begin
         apply(get_caller_identity_patch) do
