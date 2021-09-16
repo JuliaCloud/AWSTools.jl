@@ -1,15 +1,16 @@
 module AWSTools
 
-using AWSCore
-using AWSCore.Services: sts
+using AWS
 using AWSS3
 using Mocking
 using Random
-using Dates: Period, unix2datetime
+using Dates: unix2datetime
 export assume_role
 
-get_caller_identity() = sts("GetCallerIdentity")
-account_id() = (@mock get_caller_identity())["Account"]
+@service STS
+
+get_caller_identity() = STS.get_caller_identity()["GetCallerIdentityResult"]
+account_id() = (@mock get_caller_identity())["GetCallerIdentityResult"]["Account"]
 
 """
     assume_role(role_arn, [role_session_name]) -> AWSConfig
@@ -28,21 +29,17 @@ to use this config in the various AWS calls you perform.
 function assume_role(
     role_arn::AbstractString,
     role_session_name::AbstractString=randstring(16);
-    config::AWSConfig=aws_config(),
+    config::AWSConfig=global_aws_config(),
 )
     function get_role_creds(role_arn, role_session_name, config)
-        response = @mock sts(
-            config,
-            "AssumeRole",
-            RoleArn=role_arn,
-            RoleSessionName=role_session_name,
-        )
+        response = @mock STS.assume_role(role_arn, role_session_name; aws_config=config)
+        response = response["AssumeRoleResult"]
         credentials = response["Credentials"]
-        AWSCredentials(
+        return AWSCredentials(
             credentials["AccessKeyId"],
             credentials["SecretAccessKey"],
-            credentials["SessionToken"],
-            expiry = unix2datetime(credentials["Expiration"])
+            credentials["SessionToken"];
+            expiry=unix2datetime(credentials["Expiration"]),
         )
     end
 
@@ -50,7 +47,7 @@ function assume_role(
     creds = renew()
     creds.renew = renew
 
-    return aws_config(creds=creds)
+    return AWSConfig(; creds=creds)
 end
 
 include("timeout.jl")
@@ -58,6 +55,7 @@ include("CloudFormation.jl")
 include("EC2.jl")
 include("ECR.jl")
 include("Docker.jl")
-include("S3.jl")
+
+Base.@deprecate_binding S3 AWSS3
 
 end  # AWSTools
