@@ -114,8 +114,7 @@ end
         allow = [1, 3, 5, 7, 8, 11, 13, 14, 15, 16]
         apply(throttle_patch(allow)) do
             for i in allow
-                resp = raw_stack_description("stackname")
-                @test_broken resp == describe_stack_string(i)
+                @test_skip raw_stack_description("stackname") == describe_stack_string(i)
             end
         end
     end
