@@ -39,7 +39,7 @@ sts_assume_role = @patch function AWSTools.STS.assume_role(
                 "AccessKeyId" => "TESTACCESSKEYID",
                 "SecretAccessKey" => "TESTSECRETACEESSKEY",
                 "SessionToken" => "TestSessionToken",
-                "Expiration" => datetime2unix(now()),
+                "Expiration" => "2021-11-03T16:37:10Z",
             ),
         ),
     )
