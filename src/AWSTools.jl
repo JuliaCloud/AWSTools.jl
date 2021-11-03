@@ -4,7 +4,7 @@ using AWS
 using AWSS3
 using Mocking
 using Random
-using Dates: unix2datetime
+using Dates
 export assume_role
 
 @service STS
@@ -39,7 +39,7 @@ function assume_role(
             credentials["AccessKeyId"],
             credentials["SecretAccessKey"],
             credentials["SessionToken"];
-            expiry=unix2datetime(credentials["Expiration"]),
+            expiry=DateTime(credentials["Expiration"], dateformat"yyyy-mm-ddTHH:MM:SSZ"),
         )
     end
 
